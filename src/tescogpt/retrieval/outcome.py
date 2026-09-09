@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -54,6 +55,101 @@ _OUTCOME_ADJUSTMENT = {
     "conflicting_followup_proxy": -0.20,
     "unresolved_followup_proxy": -0.25,
 }
+
+
+def validate_retrieval_artifact(
+    input_path: str | Path,
+    output_path: str | Path,
+    manifest_path: str | Path,
+) -> dict[str, Any]:
+    """Validate frozen retrieval coverage, ranks, provenance, and leakage controls."""
+    source = Path(input_path)
+    destination = Path(output_path)
+    manifest_file = Path(manifest_path)
+    cases = pd.read_csv(source, dtype="string", keep_default_na=False)
+    retrieval = pd.read_csv(destination, dtype="string", keep_default_na=False)
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+
+    input_required = {"case_id", "conversation_id"}
+    missing_input = sorted(input_required - set(cases.columns))
+    if missing_input:
+        raise ValueError("Retrieval input is missing columns: " + ", ".join(missing_input))
+    if cases["case_id"].duplicated().any():
+        raise ValueError("Retrieval input contains duplicate case IDs")
+
+    output_required = {
+        "query_case_id",
+        "rank",
+        "case_id",
+        "conversation_id",
+        "lexical_score",
+        "rerank_score",
+        "outcome_tier",
+        "safety_penalty_flags",
+    }
+    missing_output = sorted(output_required - set(retrieval.columns))
+    if missing_output:
+        raise ValueError("Retrieval artifact is missing columns: " + ", ".join(missing_output))
+    if set(retrieval["query_case_id"]) != set(cases["case_id"]):
+        raise ValueError("Retrieval query IDs do not exactly match the frozen input")
+    if retrieval.duplicated(["query_case_id", "case_id"]).any():
+        raise ValueError("A retrieval candidate may appear only once per query")
+
+    top_k = int(manifest.get("top_k", 0))
+    if top_k <= 0:
+        raise ValueError("Retrieval manifest top_k must be positive")
+    ranks = pd.to_numeric(retrieval["rank"], errors="raise")
+    if ((ranks % 1).ne(0) | ~ranks.between(1, top_k)).any():
+        raise ValueError("Retrieval ranks must be integers from 1 to top_k")
+    ranked = retrieval.assign(_rank=ranks.astype(int))
+    expected_ranks = list(range(1, top_k + 1))
+    per_query_ranks = ranked.groupby("query_case_id")["_rank"].agg(
+        lambda values: sorted(values.tolist())
+    )
+    if not per_query_ranks.map(lambda values: values == expected_ranks).all():
+        raise ValueError("Every retrieval query must contain each rank exactly once")
+
+    query_conversations = cases.set_index("case_id")["conversation_id"]
+    target_conversations = retrieval["query_case_id"].map(query_conversations)
+    if retrieval["case_id"].eq(retrieval["query_case_id"]).any():
+        raise ValueError("Retrieval artifact leaks a target case into its own evidence")
+    if retrieval["conversation_id"].eq(target_conversations).any():
+        raise ValueError("Retrieval artifact leaks target-conversation evidence")
+
+    invalid_tiers = sorted(set(retrieval["outcome_tier"]) - set(_OUTCOME_ADJUSTMENT))
+    if invalid_tiers:
+        raise ValueError(
+            "Retrieval artifact has unknown outcome tiers: " + ", ".join(invalid_tiers)
+        )
+    for column in ("lexical_score", "rerank_score"):
+        scores = pd.to_numeric(retrieval[column], errors="raise")
+        if not scores.map(math.isfinite).all():
+            raise ValueError(f"Retrieval artifact contains non-finite {column} values")
+    for value in retrieval["safety_penalty_flags"]:
+        try:
+            flags = json.loads(value)
+        except json.JSONDecodeError as error:
+            raise ValueError("Retrieval safety flags must be JSON arrays") from error
+        if not isinstance(flags, list) or not all(isinstance(flag, str) for flag in flags):
+            raise ValueError("Retrieval safety flags must be JSON arrays of strings")
+
+    expected_manifest = {
+        "input_sha256": _sha256(source),
+        "output_sha256": _sha256(destination),
+        "query_count": len(cases),
+        "retrieved_row_count": len(retrieval),
+        "corpus_split": "train",
+    }
+    for field, expected in expected_manifest.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"Retrieval manifest {field} does not match the artifact")
+    return {
+        "query_count": len(cases),
+        "retrieved_row_count": len(retrieval),
+        "top_k": top_k,
+        "leaked_case_count": 0,
+        "leaked_conversation_count": 0,
+    }
 
 
 class OutcomeAwareRetriever:
@@ -197,4 +293,5 @@ def write_retrieval_artifact(
         encoding="utf-8",
         newline="\n",
     )
+    validate_retrieval_artifact(source, destination, manifest_path)
     return manifest

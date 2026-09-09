@@ -49,9 +49,11 @@ minimum date does not describe the primary collection window.
   current policy.
 - Text may refer to an image that is unavailable to the model.
 
-Accordingly, the project will use explicit outcome labels such as
-`verified_success`, `failed`, `private_handoff`, and `unknown`, with documented
-annotation rules.
+Accordingly, the current reranker uses explicitly weak, non-ground-truth tiers
+such as `positive_followup_proxy`, `unresolved_followup_proxy`,
+`private_handoff_without_outcome`, and `no_customer_followup`. Retrieval
+relevance is evaluated separately by a blinded human; none of these proxy tiers
+is presented as verified resolution.
 
 ## Leakage risks
 
@@ -63,8 +65,9 @@ annotation rules.
 4. Building the taxonomy or thresholds after inspecting final gold labels turns
    the evaluation set into development data.
 
-Splits will therefore be conversation-level and chronological, and the evaluator
-will assert that golden conversation IDs are absent from all fitted artifacts.
+Splits are therefore conversation-level and chronological. Artifact creation
+uses only the training partition, and both creation and reproduction reject any
+retrieved target case or target-conversation evidence.
 
 ## Privacy and ethics
 
@@ -72,4 +75,3 @@ Customer author IDs are anonymized in the dataset. This project will preserve
 that anonymization, redact sensitive-looking sequences in released samples, and
 make no attempt to recover identities. Examples in the report will be limited to
 what is necessary for analysis and attributed to the dataset.
-

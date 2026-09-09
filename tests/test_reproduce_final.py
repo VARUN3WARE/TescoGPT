@@ -291,7 +291,11 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
     gold = _write_csv(root / "data/golden/final.csv", final_rows)
 
     registry_rows = [
-        {"case_id": f"case-{index}", "sample_slice": sample_slice}
+        {
+            "case_id": f"case-{index}",
+            "conversation_id": f"conversation-{index}",
+            "sample_slice": sample_slice,
+        }
         for index, sample_slice in enumerate(("natural", "natural", "challenge", "challenge"), 1)
     ]
     registry = _write_csv(root / "data/golden/registry.csv", registry_rows)
@@ -334,13 +338,32 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
 
     retrieval = _write_csv(
         root / "outputs/retrieval/outcome.csv",
-        [{"query_case_id": "case-1", "candidate_case_id": "precedent-1"}],
+        [
+            {
+                "query_case_id": f"case-{index}",
+                "rank": 1,
+                "case_id": f"precedent-{index}",
+                "conversation_id": f"training-conversation-{index}",
+                "lexical_score": 1.0,
+                "rerank_score": 1.0,
+                "outcome_tier": "unclassified_followup",
+                "safety_penalty_flags": "[]",
+                "message": "Synthetic precedent message.",
+                "historical_reply": "Synthetic precedent reply.",
+                "customer_followup": "Synthetic follow-up.",
+            }
+            for index in range(1, 5)
+        ],
     )
     _write_json(
         retrieval.with_suffix(".csv.manifest.json"),
         {
             "input_sha256": _sha256(registry),
             "output_sha256": _sha256(retrieval),
+            "query_count": 4,
+            "retrieved_row_count": 4,
+            "top_k": 1,
+            "corpus_split": "train",
         },
     )
 

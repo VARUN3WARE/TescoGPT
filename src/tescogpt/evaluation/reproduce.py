@@ -21,6 +21,7 @@ from tescogpt.evaluation.retrieval_review import (
     validate_retrieval_review,
 )
 from tescogpt.evaluation.safety import audit_prediction_safety
+from tescogpt.retrieval.outcome import validate_retrieval_artifact
 
 
 def _sha256(path: Path, block_size: int = 1024 * 1024) -> str:
@@ -181,6 +182,11 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
     )
     if retrieval_manifest.get("input_sha256") != registry_hash:
         raise ValueError("Retrieval input hash does not match the frozen registry")
+    validate_retrieval_artifact(
+        registry_path,
+        retrieval_path,
+        retrieval_manifest_path,
+    )
 
     relevance_manifest_path = _resolve(root, config["retrieval_review_manifest"])
     relevance_manifest = json.loads(relevance_manifest_path.read_text(encoding="utf-8"))

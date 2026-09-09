@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
 from tescogpt.policy.safety import inspect_reply
-from tescogpt.retrieval.outcome import OutcomeAwareRetriever, write_retrieval_artifact
+from tescogpt.retrieval.outcome import (
+    OutcomeAwareRetriever,
+    validate_retrieval_artifact,
+    write_retrieval_artifact,
+)
 
 
 def _row(
@@ -66,3 +72,66 @@ def test_artifact_writer_requires_train_partition(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="explicit split"):
         write_retrieval_artifact(cases_path, corpus_path, tmp_path / "retrieval.csv")
+
+
+def test_validator_rejects_hash_consistent_target_conversation_leak(
+    tmp_path: Path,
+) -> None:
+    cases_path = tmp_path / "cases.csv"
+    retrieval_path = tmp_path / "retrieval.csv"
+    manifest_path = tmp_path / "retrieval.csv.manifest.json"
+    pd.DataFrame([{"case_id": "query", "conversation_id": "query-conversation"}]).to_csv(
+        cases_path, index=False
+    )
+    retrieval = pd.DataFrame(
+        [
+            {
+                "query_case_id": "query",
+                "rank": 1,
+                "case_id": "precedent",
+                "conversation_id": "training-conversation",
+                "lexical_score": 1.0,
+                "rerank_score": 1.0,
+                "outcome_tier": "unclassified_followup",
+                "safety_penalty_flags": "[]",
+            }
+        ]
+    )
+    retrieval.to_csv(retrieval_path, index=False)
+
+    def write_manifest() -> None:
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "input_sha256": hashlib.sha256(cases_path.read_bytes()).hexdigest(),
+                    "output_sha256": hashlib.sha256(retrieval_path.read_bytes()).hexdigest(),
+                    "query_count": 1,
+                    "retrieved_row_count": 1,
+                    "top_k": 1,
+                    "corpus_split": "train",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+    write_manifest()
+    assert validate_retrieval_artifact(cases_path, retrieval_path, manifest_path) == {
+        "query_count": 1,
+        "retrieved_row_count": 1,
+        "top_k": 1,
+        "leaked_case_count": 0,
+        "leaked_conversation_count": 0,
+    }
+
+    retrieval.loc[0, "conversation_id"] = "query-conversation"
+    retrieval.to_csv(retrieval_path, index=False)
+    write_manifest()
+    with pytest.raises(ValueError, match="target-conversation"):
+        validate_retrieval_artifact(cases_path, retrieval_path, manifest_path)
+
+    retrieval.loc[0, "conversation_id"] = "training-conversation"
+    retrieval.loc[0, "case_id"] = "query"
+    retrieval.to_csv(retrieval_path, index=False)
+    write_manifest()
+    with pytest.raises(ValueError, match="target case"):
+        validate_retrieval_artifact(cases_path, retrieval_path, manifest_path)

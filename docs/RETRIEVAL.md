@@ -36,6 +36,10 @@ are not fitted on the final evaluation set, and the score is not a probability.
 - Test-period historical replies and customer follow-ups are never input to
   retrieval or drafting.
 - The 2017 response itself is evidence text, never a current-policy source.
+- Reproduction revalidates the frozen artifact rather than trusting its hash:
+  query IDs must exactly match the registry, every query must have ranks 1–3,
+  candidates must be unique, and neither a target case nor its conversation may
+  appear in its own evidence.
 
 ## Current artifact sanity check
 
