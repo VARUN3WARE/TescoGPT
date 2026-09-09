@@ -40,7 +40,7 @@ from tescogpt.evaluation.retrieval_review import (
 from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.evaluation.sampling import sample_golden_candidates
 from tescogpt.evaluation.status import project_status
-from tescogpt.prediction import run_predictions
+from tescogpt.prediction import run_predictions, smoke_test_openai
 from tescogpt.retrieval.outcome import write_retrieval_artifact
 
 
@@ -305,6 +305,32 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Explicit Responses API model ID; required only for main-openai.",
     )
     predict.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=Path("artifacts/cache/openai_drafts"),
+    )
+
+    api_smoke = subparsers.add_parser(
+        "api-smoke",
+        help="Run one frozen case through the OpenAI path before a paid batch.",
+    )
+    api_smoke.add_argument(
+        "--input",
+        type=Path,
+        default=Path("data/golden/golden_candidates.csv"),
+    )
+    api_smoke.add_argument(
+        "--corpus",
+        type=Path,
+        default=Path("data/processed/tesco_cases.csv"),
+    )
+    api_smoke.add_argument("--model", required=True, help="Explicit Responses API model ID.")
+    api_smoke.add_argument(
+        "--case-id",
+        default=None,
+        help="Frozen case ID to test; defaults to the first input row.",
+    )
+    api_smoke.add_argument(
         "--cache-dir",
         type=Path,
         default=Path("artifacts/cache/openai_drafts"),
@@ -695,6 +721,17 @@ def main(argv: Sequence[str] | None = None) -> None:
             cache_dir=args.cache_dir,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "api-smoke":
+        result = smoke_test_openai(
+            input_path=args.input,
+            corpus_path=args.corpus,
+            model=args.model,
+            case_id=args.case_id,
+            cache_dir=args.cache_dir,
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
         return
 
     if args.command == "retrieve":

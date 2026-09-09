@@ -120,6 +120,7 @@ def run_predictions(
     corpus_path: str | Path | None = None,
     model: str | None = None,
     cache_dir: str | Path = "artifacts/cache/openai_drafts",
+    client: Any | None = None,
 ) -> dict[str, Any]:
     """Run one system over a case CSV and write predictions plus provenance."""
     source = Path(input_path)
@@ -161,7 +162,7 @@ def run_predictions(
         assert corpus is not None
         if model is None:
             raise ValueError("main-openai requires an explicit model ID")
-        openai_drafter = OpenAIDrafter(model, cache_dir)
+        openai_drafter = OpenAIDrafter(model, cache_dir, client=client)
         agent = EvidencePolicyAgent(corpus, openai_drafter)
     else:
         raise ValueError(f"Unknown system: {system}")
@@ -200,3 +201,62 @@ def run_predictions(
     )
     validate_prediction_artifact(source, destination, manifest_path)
     return manifest
+
+
+def smoke_test_openai(
+    input_path: str | Path,
+    corpus_path: str | Path,
+    *,
+    model: str,
+    case_id: str | None = None,
+    cache_dir: str | Path = "artifacts/cache/openai_drafts",
+    client: Any | None = None,
+) -> dict[str, Any]:
+    """Run one frozen case through the API path and warm the full-run cache."""
+    source = Path(input_path)
+    corpus_file = Path(corpus_path)
+    if not source.is_file():
+        raise FileNotFoundError(f"Prediction input does not exist: {source}")
+    if not corpus_file.is_file():
+        raise FileNotFoundError(f"Retrieval corpus does not exist: {corpus_file}")
+
+    cases = pd.read_csv(source, dtype="string", keep_default_na=False)
+    required = {"case_id", "conversation_id", "message", "prior_context"}
+    missing = sorted(required - set(cases.columns))
+    if missing:
+        raise ValueError(f"Prediction input is missing columns: {', '.join(missing)}")
+    if cases.empty:
+        raise ValueError("Prediction input contains no cases")
+    if cases["case_id"].duplicated().any():
+        raise ValueError("Prediction input contains duplicate case IDs")
+    if case_id is None:
+        selected = cases.iloc[0]
+    else:
+        matches = cases.loc[cases["case_id"].eq(case_id)]
+        if matches.empty:
+            raise ValueError(f"Smoke-test case ID is not in the input: {case_id}")
+        selected = matches.iloc[0]
+
+    corpus = pd.read_csv(corpus_file, dtype="string", keep_default_na=False)
+    if "split" not in corpus.columns:
+        raise ValueError("Retrieval corpus must contain an explicit split column")
+    train = corpus.loc[corpus["split"].eq("train")].copy()
+    if train.empty:
+        raise ValueError("Retrieval corpus contains no train rows")
+
+    drafter = OpenAIDrafter(model, cache_dir, client=client)
+    agent = EvidencePolicyAgent(train, drafter)
+    prediction = agent.predict(selected.to_dict()).to_record()
+    return {
+        "smoke_test_schema_version": 1,
+        "case_id": str(selected["case_id"]),
+        "system": agent.name,
+        "input_file": source.name,
+        "input_sha256": _sha256(source),
+        "corpus_file": corpus_file.name,
+        "corpus_sha256": _sha256(corpus_file),
+        "corpus_split": "train",
+        "corpus_row_count": len(train),
+        "prediction": prediction,
+        "generation_provenance": drafter.provenance(),
+    }

@@ -58,6 +58,9 @@ and [Structured Outputs
 guide](https://developers.openai.com/api/docs/guides/structured-outputs).
 No API-backed artifact is committed yet because this environment has no API key.
 That absence is recorded rather than replaced with invented model output.
+Before the 200-case paid run, `tescogpt api-smoke` exercises one frozen case
+through retrieval, generation, and the policy gate; its response is retained in
+the same cache and reused by the full batch.
 
 ## Non-bypassable policy
 

@@ -66,11 +66,16 @@ python -m tescogpt retrieval-review-freeze \
 ## 4. Freeze the API-backed main system
 
 Install the optional dependency, set `OPENAI_API_KEY` outside the repository,
-choose one explicit model ID, and run all 200 cases. The resumable cache avoids
-paying twice after an interrupted run.
+choose one explicit model ID, and smoke-test one frozen case before running all
+200. The smoke-test response enters the same resumable cache as the batch, so a
+successful call is reused rather than purchased twice.
 
 ```bash
 python -m pip install -e ".[llm]"
+python -m tescogpt api-smoke \
+  --model YOUR_EXPLICIT_MODEL_ID \
+  --input data/golden/golden_candidates.csv \
+  --corpus data/processed/tesco_cases.csv
 python -m tescogpt predict --system main-openai \
   --model YOUR_EXPLICIT_MODEL_ID \
   --input data/golden/golden_candidates.csv \

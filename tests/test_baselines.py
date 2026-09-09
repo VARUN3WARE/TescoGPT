@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -11,7 +12,11 @@ from tescogpt.agent.intent import classify_intent
 from tescogpt.agent.schema import AgentOutput
 from tescogpt.baselines.simple import SimpleBaseline, route_case
 from tescogpt.baselines.trivial import TrivialBaseline
-from tescogpt.prediction import run_predictions, validate_prediction_artifact
+from tescogpt.prediction import (
+    run_predictions,
+    smoke_test_openai,
+    validate_prediction_artifact,
+)
 from tescogpt.retrieval.bm25 import BM25Index
 
 
@@ -177,6 +182,94 @@ def test_prediction_runner_refuses_unpartitioned_retrieval_corpus(
             tmp_path / "predictions.csv",
             corpus_path,
         )
+
+
+class _SmokeResponses:
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    def create(self, **kwargs: object) -> SimpleNamespace:
+        self.calls.append(kwargs)
+        return SimpleNamespace(
+            id="smoke-response-1",
+            model="resolved-smoke-model",
+            output_text=json.dumps(
+                {
+                    "predicted_intent": "feedback_praise_or_suggestion",
+                    "intent_confidence": 0.95,
+                    "draft_reply": "Thanks for sharing your feedback with Tesco.",
+                    "used_evidence_case_ids": [],
+                }
+            ),
+            usage={"input_tokens": 10, "output_tokens": 5, "total_tokens": 15},
+        )
+
+
+def test_api_smoke_runs_one_case_and_warms_the_cache(tmp_path: Path) -> None:
+    cases = pd.DataFrame(
+        [
+            {
+                "case_id": "case-1",
+                "conversation_id": "99",
+                "message": "Thanks Tesco",
+                "prior_context": "",
+            },
+            {
+                "case_id": "case-2",
+                "conversation_id": "98",
+                "message": "Thank you",
+                "prior_context": "",
+            },
+        ]
+    )
+    corpus = _corpus().assign(
+        customer_followup="",
+        private_handoff_proxy="false",
+        positive_outcome_proxy="false",
+        unresolved_outcome_proxy="false",
+    )
+    input_path = tmp_path / "cases.csv"
+    corpus_path = tmp_path / "corpus.csv"
+    cache_dir = tmp_path / "cache"
+    cases.to_csv(input_path, index=False)
+    corpus.to_csv(corpus_path, index=False)
+    responses = _SmokeResponses()
+    client = SimpleNamespace(responses=responses)
+
+    first = smoke_test_openai(
+        input_path,
+        corpus_path,
+        model="smoke-model",
+        case_id="case-2",
+        cache_dir=cache_dir,
+        client=client,
+    )
+    second = smoke_test_openai(
+        input_path,
+        corpus_path,
+        model="smoke-model",
+        case_id="case-2",
+        cache_dir=cache_dir,
+        client=client,
+    )
+    batch = run_predictions(
+        "main-openai",
+        input_path,
+        tmp_path / "predictions.csv",
+        corpus_path,
+        model="smoke-model",
+        cache_dir=cache_dir,
+        client=client,
+    )
+
+    assert len(responses.calls) == 2
+    assert first["case_id"] == "case-2"
+    assert first["generation_provenance"]["api_call_count"] == 1
+    assert second["generation_provenance"]["api_call_count"] == 0
+    assert second["generation_provenance"]["cache_hit_count"] == 1
+    assert batch["generation_provenance"]["request_count"] == 2
+    assert batch["generation_provenance"]["api_call_count"] == 1
+    assert batch["generation_provenance"]["cache_hit_count"] == 1
 
 
 def test_validator_rejects_hash_consistent_missing_prediction(tmp_path: Path) -> None:
