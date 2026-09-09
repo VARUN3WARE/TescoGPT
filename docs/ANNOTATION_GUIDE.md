@@ -1,6 +1,8 @@
 # TescoGPT annotation guide
 
-**Codebook version:** 1.0
+**Codebook version:** 1.1. The taxonomy and policy labels are unchanged; this
+revision makes the workbook completion counter match the required fields.
+
 **Unit:** one incoming public customer message, plus only the conversation context
 that existed before that message.
 
@@ -234,7 +236,8 @@ python -m tescogpt adjudication-finalize
 `outputs/annotation_workbook/round1_annotation.xlsx` contains all 200 primary
 rows. `round2_annotation.xlsx` contains the independent 60-row overlap. Yellow
 cells are human inputs; dropdowns cover primary/secondary intent, handling, and
-reason code. The progress cells count primary-intent completion.
+reason code. The progress cells count a row only when primary intent, handling,
+reason, `must_include`, `must_avoid`, and annotator ID are all populated.
 
 Give each workbook to a different annotator. Do not place completed round-one
 labels into the round-two workbook. When finished, save the `Annotations` tab as

@@ -29,8 +29,8 @@
       "passed": true
     },
     {
-      "actual_sha256": "70ae00c1437ea9311fe486fbfb74654bb448fe03c82379ee7b94835b454334f1",
-      "expected_sha256": "70ae00c1437ea9311fe486fbfb74654bb448fe03c82379ee7b94835b454334f1",
+      "actual_sha256": "c50e20bb64d9a6d652240cee9d50c7c6a0f2578ca28a91dc18a09a7d8cdc7fd5",
+      "expected_sha256": "c50e20bb64d9a6d652240cee9d50c7c6a0f2578ca28a91dc18a09a7d8cdc7fd5",
       "file": "ANNOTATION_GUIDE.md",
       "name": "annotation codebook",
       "passed": true
