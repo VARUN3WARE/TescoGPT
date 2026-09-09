@@ -134,3 +134,13 @@ and repeatability exclude the decoys so easy controls cannot inflate validity;
 decoy fail and critical-error-detection rates are reported separately.
 Each judge CSV and adjacent manifest must also match the frozen human-review
 hash, exact row IDs, explicit model ID, replicate number, and per-row pass rule.
+
+## Consolidated evidence summary
+
+A completed reproduction writes `outputs/evaluation/evidence_summary.md` from
+the in-memory results returned by every evaluator. It does not replace the
+authoritative JSON/CSV artifacts. Its purpose is to put core metrics, paired
+baseline differences, annotation agreement, retrieval judgments, human reply
+quality, judge validity, failure-event count, and the main interpretation limits
+in one deterministic reviewer-facing view. Its SHA-256 is recorded in the
+reproduction report.

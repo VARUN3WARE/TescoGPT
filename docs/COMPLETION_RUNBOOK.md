@@ -132,6 +132,10 @@ Only after that review, change the report's single
 also enforces all assignment sections and a conservative 2,400-word guard for
 the six-page limit.
 
+Use `outputs/evaluation/evidence_summary.md` as the cross-artifact fact sheet
+when replacing pending prose. Verify any copied claim against its named source
+JSON/CSV; never edit the generated summary itself.
+
 ```bash
 python -m tescogpt status --require-final-ready
 python -m tescogpt reproduce

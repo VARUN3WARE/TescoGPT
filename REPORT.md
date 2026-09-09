@@ -129,7 +129,9 @@ systems.
 Human-dependent results are not available yet. The final table must compare both
 baselines and the API-backed TescoGPT system on natural and challenge slices.
 The offline reproduction command will generate it from committed per-example
-files; numbers will not be typed into this report manually.
+files; numbers will not be typed into this report manually. It also writes a
+single evidence summary spanning core, retrieval, human-reply, judge, and
+failure results so cross-artifact claims can be checked in one place.
 
 One pre-label regression check is available:
 

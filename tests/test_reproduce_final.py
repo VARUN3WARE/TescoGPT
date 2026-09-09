@@ -604,6 +604,7 @@ Collect real human evidence.
         "judge_agreement_output": "outputs/evaluation/judge_human_agreement.json",
         "failure_events_output": "outputs/evaluation/failure_events.csv",
         "failure_analysis_output": "outputs/evaluation/failure_analysis.json",
+        "evidence_summary_output": "outputs/evaluation/evidence_summary.md",
         "headline_output": "outputs/evaluation/headline.md",
         "reproduction_output": "outputs/evaluation/reproduction.json",
     }
@@ -620,6 +621,7 @@ Collect real human evidence.
     assert report["judge_comparison_count"] == 2
     assert report["judge_advisory_trust_gate_passed"] is True
     assert report["failure_event_count"] > 0
+    assert report["evidence_summary"]["headline_system"] == "tescogpt_test_main"
     assert all(check["passed"] for check in report["integrity_checks"])
 
     metrics = json.loads((root / "outputs/evaluation/metrics.json").read_text(encoding="utf-8"))
@@ -635,6 +637,16 @@ Collect real human evidence.
         )
     )
     assert judge_agreement["judge_advisory_trust_gate"]["passed"] is True
+    evidence_summary = (root / "outputs/evaluation/evidence_summary.md").read_text(
+        encoding="utf-8"
+    )
+    assert "# Frozen evaluation evidence summary" in evidence_summary
+    assert "## Independent annotation agreement" in evidence_summary
+    assert "## Core agent results" in evidence_summary
+    assert "## Blinded retrieval relevance" in evidence_summary
+    assert "## System-blinded human reply quality" in evidence_summary
+    assert "Advisory trust gate: **PASS**" in evidence_summary
+    assert "## Interpretation limits" in evidence_summary
 
     prediction_paths[0].write_text(
         prediction_paths[0].read_text(encoding="utf-8") + "# tampered\n",

@@ -28,6 +28,7 @@ from tescogpt.evaluation.retrieval_review import (
     validate_retrieval_review_key,
 )
 from tescogpt.evaluation.safety import audit_prediction_safety
+from tescogpt.evaluation.summary import write_evidence_summary
 from tescogpt.prediction import validate_prediction_artifact
 from tescogpt.retrieval.outcome import validate_retrieval_artifact
 
@@ -474,6 +475,7 @@ def reproduce_project(
     report["annotation_agreement_overlap"] = agreement["overlap_count"]
     report["evaluated_system_count"] = metrics["system_count"]
 
+    retrieval_metrics = None
     if relevance_manifest["label_status"] == "HUMAN_LABELED":
         retrieval_metrics = evaluate_retrieval_review(
             _resolve(root, config["retrieval_review_file"]),
@@ -487,6 +489,7 @@ def reproduce_project(
         raise ValueError("FINAL config requires frozen human retrieval relevance ratings")
 
     human_review = config.get("reply_review_file")
+    reply_quality = None
     if human_review:
         reply_manifest_path = _resolve(root, config["reply_review_manifest"])
         reply_manifest = json.loads(reply_manifest_path.read_text(encoding="utf-8"))
@@ -506,6 +509,7 @@ def reproduce_project(
             raise ValueError("FINAL config requires frozen human reply ratings")
 
     judge_outputs = config.get("judge_output_files", [])
+    judge_report = None
     if human_review and judge_outputs:
         judge_report = judge_human_agreement(
             _resolve(root, human_review),
@@ -548,6 +552,21 @@ def reproduce_project(
         judge_paths=[_resolve(root, value) for value in judge_outputs],
     )
     report["failure_event_count"] = failure_report["event_count"]
+
+    if retrieval_metrics is not None and reply_quality is not None and judge_report is not None:
+        evidence_summary = write_evidence_summary(
+            metrics=metrics,
+            annotation_agreement=agreement,
+            retrieval_metrics=retrieval_metrics,
+            reply_quality=reply_quality,
+            judge_agreement=judge_report,
+            failure_analysis=failure_report,
+            headline_system=headline_system,
+            output_path=_resolve(root, config["evidence_summary_output"]),
+        )
+        report["evidence_summary"] = evidence_summary
+    elif config["status"] == "FINAL":
+        raise ValueError("FINAL config requires every evidence-summary input")
 
     elapsed = time.perf_counter() - started
     report["elapsed_seconds"] = round(elapsed, 3)
