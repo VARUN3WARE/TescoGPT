@@ -216,14 +216,22 @@ labels do not satisfy this project's golden-set requirement.
 Excel-friendly copies are available in `outputs/annotation_workbook`. They have
 dropdowns, an embedded codebook, frozen identifiers, and live progress counts.
 The two annotators must use separate workbooks and must not view each other's
-labels. After labelling, save only the `Annotations` sheet as CSV UTF-8 over the
-corresponding file in `data/golden`, then run `labels-check --require-complete`.
+labels. After labelling, use `labels-import-workbook --require-complete`; it
+checks the workbook against the frozen CSV context and validates a temporary
+export before atomically replacing the corresponding file in `data/golden`.
 Once both files pass, run `python -m tescogpt labels-freeze` to verify that no
 message or context changed, enforce distinct annotator IDs, and update the
 human-label hashes. Then preserve the independent-agreement measurement and
 resolve only categorical disagreements:
 
 ```bash
+python -m tescogpt labels-import-workbook \
+  --workbook outputs/annotation_workbook/round1_annotation.xlsx \
+  --output data/golden/round1_annotations.csv --require-complete
+python -m tescogpt labels-import-workbook \
+  --workbook outputs/annotation_workbook/round2_annotation.xlsx \
+  --output data/golden/round2_annotations.csv --require-complete
+python -m tescogpt labels-freeze
 python -m tescogpt annotation-agreement
 python -m tescogpt adjudication-init
 # A human completes the blank final_* cells and adjudicator_id values.

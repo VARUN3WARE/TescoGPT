@@ -12,16 +12,18 @@ identity-key files while rating blinded reply or retrieval rows.
 
 Annotator one completes all 200 rows in
 `outputs/annotation_workbook/round1_annotation.xlsx`. A different person
-independently completes all 60 rows in `round2_annotation.xlsx`. Each exports
-only the `Annotations` worksheet as CSV UTF-8 over the corresponding file in
-`data/golden`. Every row needs the categorical labels, `must_include`,
-`must_avoid`, and the same stable annotator ID for that round.
+independently completes all 60 rows in `round2_annotation.xlsx`. Every row
+needs the categorical labels, `must_include`, `must_avoid`, and the same stable
+annotator ID for that round. Import each saved workbook with the commands below;
+the importer verifies frozen IDs and context before atomically replacing its CSV.
 
 ```bash
-python -m tescogpt labels-check \
-  --input data/golden/round1_annotations.csv --require-complete
-python -m tescogpt labels-check \
-  --input data/golden/round2_annotations.csv --require-complete
+python -m tescogpt labels-import-workbook \
+  --workbook outputs/annotation_workbook/round1_annotation.xlsx \
+  --output data/golden/round1_annotations.csv --require-complete
+python -m tescogpt labels-import-workbook \
+  --workbook outputs/annotation_workbook/round2_annotation.xlsx \
+  --output data/golden/round2_annotations.csv --require-complete
 python -m tescogpt labels-freeze
 ```
 
@@ -51,12 +53,12 @@ at round one so agreement remains independent.
 ## 3. Complete the blinded retrieval review
 
 One reviewer fills `relevance_grade`, one stable `reviewer_id`, and a reason for
-every borderline (`1`) judgment in the review workbook, exports its review
-sheet as CSV UTF-8, and does not inspect the identity key.
+every borderline (`1`) judgment in the review workbook and does not inspect the
+identity key. Importing checks that the blinded queries and candidates have not
+changed before replacing the CSV.
 
 ```bash
-python -m tescogpt retrieval-review-check \
-  --input data/review/retrieval_relevance.csv --require-complete
+python -m tescogpt retrieval-review-import-workbook --require-complete
 python -m tescogpt retrieval-review-freeze \
   --review data/review/retrieval_relevance.csv \
   --identity-key data/review/retrieval_relevance_key.csv \

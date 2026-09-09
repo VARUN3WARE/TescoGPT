@@ -309,11 +309,12 @@ def project_status(
     }
     actions = {
         "primary_annotations_complete": (
-            "Complete outputs/annotation_workbook/round1_annotation.xlsx and export "
-            "its Annotations sheet to data/golden/round1_annotations.csv."
+            "Complete round1_annotation.xlsx, then run labels-import-workbook "
+            "with --require-complete for data/golden/round1_annotations.csv."
         ),
         "independent_annotations_complete": (
-            "Have a different person complete round2_annotation.xlsx independently."
+            "Have a different person complete round2_annotation.xlsx, then import it "
+            "with labels-import-workbook --require-complete."
         ),
         "independent_rounds_frozen": "Run: python -m tescogpt labels-freeze",
         "categorical_adjudication_complete": (
@@ -324,7 +325,8 @@ def project_status(
             "Point gold_file at data/golden/final_annotations.csv."
         ),
         "retrieval_review_frozen": (
-            "Complete the blind retrieval review and run retrieval-review-freeze."
+            "Complete the blind workbook, run retrieval-review-import-workbook "
+            "--require-complete, then retrieval-review-freeze."
         ),
         "required_baselines_frozen": "Freeze the specified trivial and simple baselines.",
         "three_systems_frozen": "Freeze two baselines and one main-system prediction file.",

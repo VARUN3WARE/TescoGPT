@@ -4,11 +4,11 @@
   "blockers": [
     {
       "gate": "primary_annotations_complete",
-      "next_action": "Complete outputs/annotation_workbook/round1_annotation.xlsx and export its Annotations sheet to data/golden/round1_annotations.csv."
+      "next_action": "Complete round1_annotation.xlsx, then run labels-import-workbook with --require-complete for data/golden/round1_annotations.csv."
     },
     {
       "gate": "independent_annotations_complete",
-      "next_action": "Have a different person complete round2_annotation.xlsx independently."
+      "next_action": "Have a different person complete round2_annotation.xlsx, then import it with labels-import-workbook --require-complete."
     },
     {
       "gate": "independent_rounds_frozen",
@@ -24,7 +24,7 @@
     },
     {
       "gate": "retrieval_review_frozen",
-      "next_action": "Complete the blind retrieval review and run retrieval-review-freeze."
+      "next_action": "Complete the blind workbook, run retrieval-review-import-workbook --require-complete, then retrieval-review-freeze."
     },
     {
       "gate": "api_main_prediction_frozen",
@@ -120,7 +120,7 @@
   "judge_runs": [],
   "next_action": {
     "gate": "primary_annotations_complete",
-    "next_action": "Complete outputs/annotation_workbook/round1_annotation.xlsx and export its Annotations sheet to data/golden/round1_annotations.csv."
+    "next_action": "Complete round1_annotation.xlsx, then run labels-import-workbook with --require-complete for data/golden/round1_annotations.csv."
   },
   "predictions": [
     {

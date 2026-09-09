@@ -40,6 +40,10 @@ from tescogpt.evaluation.retrieval_review import (
 from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.evaluation.sampling import sample_golden_candidates
 from tescogpt.evaluation.status import project_status
+from tescogpt.evaluation.workbook_import import (
+    import_annotation_workbook,
+    import_retrieval_review_workbook,
+)
 from tescogpt.prediction import run_predictions, smoke_test_openai
 from tescogpt.retrieval.outcome import write_retrieval_artifact
 
@@ -168,6 +172,20 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Fail if any row is not fully labelled.",
     )
+
+    labels_import = subparsers.add_parser(
+        "labels-import-workbook",
+        help="Safely import a labelled Annotations worksheet into its frozen CSV.",
+    )
+    labels_import.add_argument("--workbook", type=Path, required=True)
+    labels_import.add_argument("--output", type=Path, required=True)
+    labels_import.add_argument(
+        "--reference",
+        type=Path,
+        default=None,
+        help="Frozen CSV used for context checks; defaults to the current output.",
+    )
+    labels_import.add_argument("--require-complete", action="store_true")
 
     labels_init = subparsers.add_parser(
         "labels-init",
@@ -551,6 +569,28 @@ def _build_parser() -> argparse.ArgumentParser:
     retrieval_review_check.add_argument("--input", type=Path, required=True)
     retrieval_review_check.add_argument("--require-complete", action="store_true")
 
+    retrieval_review_import = subparsers.add_parser(
+        "retrieval-review-import-workbook",
+        help="Safely import the blinded Relevance Review worksheet into CSV.",
+    )
+    retrieval_review_import.add_argument(
+        "--workbook",
+        type=Path,
+        default=Path("outputs/review_workbook/retrieval_relevance_review.xlsx"),
+    )
+    retrieval_review_import.add_argument(
+        "--output",
+        type=Path,
+        default=Path("data/review/retrieval_relevance.csv"),
+    )
+    retrieval_review_import.add_argument(
+        "--reference",
+        type=Path,
+        default=None,
+        help="Frozen CSV used for content checks; defaults to the current output.",
+    )
+    retrieval_review_import.add_argument("--require-complete", action="store_true")
+
     retrieval_review_freeze = subparsers.add_parser(
         "retrieval-review-freeze",
         help="Freeze completed human relevance judgments and verify blind content.",
@@ -654,6 +694,16 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     if args.command == "labels-check":
         progress = validate_annotations(args.input, require_complete=args.require_complete)
+        print(json.dumps(progress, indent=2, sort_keys=True))
+        return
+
+    if args.command == "labels-import-workbook":
+        progress = import_annotation_workbook(
+            args.workbook,
+            args.output,
+            reference_path=args.reference,
+            require_complete=args.require_complete,
+        )
         print(json.dumps(progress, indent=2, sort_keys=True))
         return
 
@@ -875,6 +925,16 @@ def main(argv: Sequence[str] | None = None) -> None:
     if args.command == "retrieval-review-check":
         progress = validate_retrieval_review(
             args.input,
+            require_complete=args.require_complete,
+        )
+        print(json.dumps(progress, indent=2, sort_keys=True))
+        return
+
+    if args.command == "retrieval-review-import-workbook":
+        progress = import_retrieval_review_workbook(
+            args.workbook,
+            args.output,
+            reference_path=args.reference,
             require_complete=args.require_complete,
         )
         print(json.dumps(progress, indent=2, sort_keys=True))
