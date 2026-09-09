@@ -16,7 +16,7 @@
       "flagged_draft_rate": 0.58,
       "guardrail_replacement_count": 0,
       "prediction_file": "simple.csv",
-      "prediction_sha256": "0e5ba17029c7b8926b4b841b2b0950b4fdc172660954d48656262daaed08e6bd",
+      "prediction_sha256": "8759633425655c84a1a4b6af9b34f15ae49fb11df5e4fa00d309e6db9d7ed492",
       "proposed_draft_flag_counts": {
         "over_public_length_limit": 53,
         "personal_data_request": 78,

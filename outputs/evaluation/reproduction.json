@@ -20,7 +20,7 @@
     }
   },
   "configured_status": "AWAITING_HUMAN_LABELS",
-  "elapsed_seconds": 0.154,
+  "elapsed_seconds": 0.244,
   "integrity_checks": [
     {
       "actual_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
@@ -58,8 +58,8 @@
       "passed": true
     },
     {
-      "actual_sha256": "0e5ba17029c7b8926b4b841b2b0950b4fdc172660954d48656262daaed08e6bd",
-      "expected_sha256": "0e5ba17029c7b8926b4b841b2b0950b4fdc172660954d48656262daaed08e6bd",
+      "actual_sha256": "8759633425655c84a1a4b6af9b34f15ae49fb11df5e4fa00d309e6db9d7ed492",
+      "expected_sha256": "8759633425655c84a1a4b6af9b34f15ae49fb11df5e4fa00d309e6db9d7ed492",
       "file": "simple.csv",
       "name": "prediction simple_rules_bm25_v1",
       "passed": true
