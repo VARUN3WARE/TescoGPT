@@ -1,9 +1,13 @@
+import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from tescogpt.evaluation.reproduce import _validate_generation_provenance
+from tescogpt.evaluation.reproduce import (
+    _validate_generation_provenance,
+    _write_reproduction_report,
+)
 
 
 def _manifest() -> dict:
@@ -61,3 +65,26 @@ def test_api_prediction_provenance_reconciles_cache_and_call_counts() -> None:
             predictions,
             Path("predictions.csv"),
         )
+
+
+def test_reproduction_runtime_gate_persists_failure_without_dynamic_time(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "reproduction.json"
+    monkeypatch.setattr(
+        "tescogpt.evaluation.reproduce.time.perf_counter",
+        lambda: 901.0,
+    )
+
+    with pytest.raises(RuntimeError, match="15-minute"):
+        _write_reproduction_report(
+            {"status": "COMPLETE"},
+            output,
+            started=0.0,
+        )
+
+    persisted = json.loads(output.read_text(encoding="utf-8"))
+    assert persisted["runtime_limit_seconds"] == 900
+    assert persisted["under_15_minutes"] is False
+    assert "elapsed_seconds" not in persisted

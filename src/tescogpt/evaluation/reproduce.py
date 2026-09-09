@@ -32,6 +32,8 @@ from tescogpt.evaluation.summary import write_evidence_summary
 from tescogpt.prediction import validate_prediction_artifact
 from tescogpt.retrieval.outcome import validate_retrieval_artifact
 
+_RUNTIME_LIMIT_SECONDS = 15 * 60
+
 
 def _sha256(path: Path, block_size: int = 1024 * 1024) -> str:
     digest = hashlib.sha256()
@@ -73,6 +75,31 @@ def _hash_check(
 def _valid_sha256(value: Any) -> bool:
     text = str(value)
     return len(text) == 64 and all(character in "0123456789abcdef" for character in text)
+
+
+def _write_reproduction_report(
+    report: dict[str, Any],
+    destination: Path,
+    *,
+    started: float,
+) -> dict[str, Any]:
+    """Persist stable evidence while returning this invocation's measured runtime."""
+    elapsed = time.perf_counter() - started
+    persisted = {
+        **report,
+        "runtime_limit_seconds": _RUNTIME_LIMIT_SECONDS,
+        "under_15_minutes": elapsed < _RUNTIME_LIMIT_SECONDS,
+    }
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(
+        json.dumps(persisted, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    invocation = {**persisted, "elapsed_seconds": round(elapsed, 3)}
+    if elapsed >= _RUNTIME_LIMIT_SECONDS:
+        raise RuntimeError("Offline reproduction exceeded the 15-minute contract")
+    return invocation
 
 
 def _validate_generation_provenance(
@@ -413,7 +440,7 @@ def reproduce_project(
 
     complete = round_one_progress["is_complete"] and round_two_progress["is_complete"]
     report: dict[str, Any] = {
-        "reproduction_schema_version": 1,
+        "reproduction_schema_version": 2,
         "configured_status": config["status"],
         "integrity_checks": integrity_checks,
         "annotation_progress": {
@@ -427,19 +454,17 @@ def reproduce_project(
     report["retrieval_review_status"] = relevance_manifest["label_status"]
     if not complete:
         report["status"] = "AWAITING_HUMAN_LABELS"
-        report["elapsed_seconds"] = round(time.perf_counter() - started, 3)
         destination = _resolve(root, config["reproduction_output"])
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(
-            json.dumps(report, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-            newline="\n",
+        invocation_report = _write_reproduction_report(
+            report,
+            destination,
+            started=started,
         )
         if not allow_incomplete:
             raise RuntimeError(
                 "Human annotations are incomplete; run with --allow-incomplete for readiness only"
             )
-        return report
+        return invocation_report
 
     annotation_manifest = json.loads(
         _resolve(root, config["annotation_manifest"]).read_text(encoding="utf-8")
@@ -568,16 +593,10 @@ def reproduce_project(
     elif config["status"] == "FINAL":
         raise ValueError("FINAL config requires every evidence-summary input")
 
-    elapsed = time.perf_counter() - started
-    report["elapsed_seconds"] = round(elapsed, 3)
-    report["under_15_minutes"] = elapsed < 900
     report["status"] = "COMPLETE" if config["status"] == "FINAL" else "DEVELOPMENT_COMPLETE"
     destination = _resolve(root, config["reproduction_output"])
-    destination.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
+    return _write_reproduction_report(
+        report,
+        destination,
+        started=started,
     )
-    if elapsed >= 900:
-        raise RuntimeError("Offline reproduction exceeded the 15-minute contract")
-    return report

@@ -614,6 +614,8 @@ Collect real human evidence.
 
     assert report["status"] == "COMPLETE"
     assert report["under_15_minutes"] is True
+    assert report["runtime_limit_seconds"] == 900
+    assert report["elapsed_seconds"] >= 0
     assert report["annotation_agreement_overlap"] == 2
     assert report["evaluated_system_count"] == 3
     assert report["retrieval_evaluated_system_count"] == 2
@@ -647,6 +649,15 @@ Collect real human evidence.
     assert "## System-blinded human reply quality" in evidence_summary
     assert "Advisory trust gate: **PASS**" in evidence_summary
     assert "## Interpretation limits" in evidence_summary
+
+    reproduction_path = root / "outputs/evaluation/reproduction.json"
+    first_reproduction = reproduction_path.read_bytes()
+    persisted_reproduction = json.loads(first_reproduction)
+    assert persisted_reproduction["reproduction_schema_version"] == 2
+    assert persisted_reproduction["under_15_minutes"] is True
+    assert "elapsed_seconds" not in persisted_reproduction
+    reproduce_project(config_path)
+    assert reproduction_path.read_bytes() == first_reproduction
 
     prediction_paths[0].write_text(
         prediction_paths[0].read_text(encoding="utf-8") + "# tampered\n",

@@ -20,7 +20,6 @@
     }
   },
   "configured_status": "AWAITING_HUMAN_LABELS",
-  "elapsed_seconds": 0.244,
   "integrity_checks": [
     {
       "actual_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
@@ -93,8 +92,10 @@
       "passed": true
     }
   ],
-  "reproduction_schema_version": 1,
+  "reproduction_schema_version": 2,
   "retrieval_review_status": "UNLABELED",
+  "runtime_limit_seconds": 900,
   "static_safety_system_count": 3,
-  "status": "AWAITING_HUMAN_LABELS"
+  "status": "AWAITING_HUMAN_LABELS",
+  "under_15_minutes": true
 }

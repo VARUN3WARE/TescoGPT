@@ -34,6 +34,7 @@ data/processed/*
 artifacts/models/*
 artifacts/indexes/*
 artifacts/cache/*
+artifacts/cleanroom-*/
 !artifacts/models/.gitkeep
 !artifacts/indexes/.gitkeep
 !artifacts/cache/.gitkeep
@@ -41,4 +42,3 @@ artifacts/cache/*
 # Local reports and scratch files
 *.log
 scratch/
-
