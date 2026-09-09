@@ -32,6 +32,18 @@ class EvidencePolicyAgent:
             exclude_conversation_id=case.get("conversation_id"),
         )
         draft = self._drafter.draft(case, precedents)
+        precedent_by_id = {item.case_id: item for item in precedents}
+        unknown_evidence_ids = sorted(
+            set(draft.used_evidence_case_ids) - set(precedent_by_id)
+        )
+        if unknown_evidence_ids:
+            raise ValueError(
+                "Drafter cited evidence that was not retrieved: "
+                + ", ".join(unknown_evidence_ids)
+            )
+        used_precedents = tuple(
+            precedent_by_id[case_id] for case_id in draft.used_evidence_case_ids
+        )
         policy = decide_handling(
             intent=draft.predicted_intent,
             intent_confidence=draft.intent_confidence,
@@ -56,8 +68,8 @@ class EvidencePolicyAgent:
             handling_decision=policy.handling_decision,
             decision_reason=policy.reason,
             automation_score=policy.automation_score,
-            evidence_case_ids=tuple(item.case_id for item in precedents),
-            evidence_quotes=tuple(item.historical_reply for item in precedents),
-            evidence_scores=tuple(item.rerank_score for item in precedents),
+            evidence_case_ids=tuple(item.case_id for item in used_precedents),
+            evidence_quotes=tuple(item.historical_reply for item in used_precedents),
+            evidence_scores=tuple(item.rerank_score for item in used_precedents),
             safety_flags=tuple(sorted({*policy.input_flags, *guardrail_flags})),
         )

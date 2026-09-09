@@ -38,6 +38,12 @@ rejected rather than silently reused. Offline validation also reconciles unique
 request, cache-hit, and API-call counts against the per-case traces and rejects
 missing or inconsistent resolved-model lineage.
 
+Per-row `evidence_case_ids`, quotes, and scores contain only the retrieved
+precedents the drafter explicitly declares it used. An unknown or duplicate ID
+is rejected, and an empty declaration stays empty rather than being padded with
+all retrieved candidates. The separate retrieval artifact preserves the full
+candidate pool for retrieval evaluation.
+
 Generation-time validation is repeated during offline reproduction. Every CSV
 row is reconstructed as the shared `AgentOutput` contract, its case IDs must
 exactly cover the frozen registry, and its row count, filenames, system ID, and

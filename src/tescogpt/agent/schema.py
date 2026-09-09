@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -69,6 +70,17 @@ class AgentOutput:
             raise ValueError("Every evidence case ID must have one evidence quote")
         if len(self.evidence_case_ids) != len(self.evidence_scores):
             raise ValueError("Every evidence case ID must have one retrieval score")
+        if any(
+            not isinstance(case_id, str) or not case_id.strip()
+            for case_id in self.evidence_case_ids
+        ):
+            raise ValueError("Evidence case IDs must be non-empty strings")
+        if len(self.evidence_case_ids) != len(set(self.evidence_case_ids)):
+            raise ValueError("Evidence case IDs must be unique")
+        if any(not isinstance(quote, str) or not quote.strip() for quote in self.evidence_quotes):
+            raise ValueError("Evidence quotes must be non-empty strings")
+        if any(not math.isfinite(float(score)) for score in self.evidence_scores):
+            raise ValueError("Evidence scores must be finite")
 
     def to_record(self) -> dict[str, Any]:
         """Return a stable, CSV-friendly representation."""

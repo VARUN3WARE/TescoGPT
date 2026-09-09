@@ -49,6 +49,36 @@ def test_agent_output_rejects_incompatible_route() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("evidence_case_ids", "evidence_quotes", "evidence_scores", "match"),
+    [
+        (("train-1", "train-1"), ("one", "two"), (1.0, 0.5), "unique"),
+        (("",), ("one",), (1.0,), "non-empty strings"),
+        (("train-1",), ("",), (1.0,), "quotes"),
+        (("train-1",), ("one",), (float("nan"),), "finite"),
+    ],
+)
+def test_agent_output_rejects_malformed_evidence(
+    evidence_case_ids: tuple[str, ...],
+    evidence_quotes: tuple[str, ...],
+    evidence_scores: tuple[float, ...],
+    match: str,
+) -> None:
+    with pytest.raises(ValueError, match=match):
+        AgentOutput(
+            case_id="case-1",
+            system_name="broken",
+            predicted_intent="feedback_praise_or_suggestion",
+            intent_confidence=0.9,
+            draft_reply="Thanks.",
+            handling_decision="AUTO_HANDLE",
+            decision_reason="NO_ACTION_NEEDED",
+            evidence_case_ids=evidence_case_ids,
+            evidence_quotes=evidence_quotes,
+            evidence_scores=evidence_scores,
+        )
+
+
 def test_trivial_baseline_always_escalates() -> None:
     result = TrivialBaseline().predict({"case_id": "case-1"})
     assert result.predicted_intent == "other_or_unclear"

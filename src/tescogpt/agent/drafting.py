@@ -30,6 +30,13 @@ class DraftCandidate:
             raise ValueError("Draft reply must not be blank")
         if len(self.draft_reply) > 280:
             raise ValueError("Draft reply must not exceed 280 characters")
+        if any(
+            not isinstance(case_id, str) or not case_id.strip()
+            for case_id in self.used_evidence_case_ids
+        ):
+            raise ValueError("Draft evidence IDs must be non-empty strings")
+        if len(self.used_evidence_case_ids) != len(set(self.used_evidence_case_ids)):
+            raise ValueError("Draft evidence IDs must be unique")
 
 
 class Drafter(Protocol):

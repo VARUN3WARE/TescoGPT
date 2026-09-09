@@ -75,6 +75,30 @@ class LinkDrafter:
         )
 
 
+class NoEvidenceDrafter:
+    name = "no_evidence_test"
+
+    def draft(self, case: dict, precedents: list[Precedent]) -> DraftCandidate:
+        return DraftCandidate(
+            predicted_intent="feedback_praise_or_suggestion",
+            intent_confidence=0.99,
+            draft_reply="Thanks for sharing your feedback with Tesco.",
+            used_evidence_case_ids=(),
+        )
+
+
+class UnknownEvidenceDrafter:
+    name = "unknown_evidence_test"
+
+    def draft(self, case: dict, precedents: list[Precedent]) -> DraftCandidate:
+        return DraftCandidate(
+            predicted_intent="feedback_praise_or_suggestion",
+            intent_confidence=0.99,
+            draft_reply="Thanks for sharing your feedback with Tesco.",
+            used_evidence_case_ids=("not-retrieved",),
+        )
+
+
 def test_final_gate_replaces_unsafe_draft_and_escalates() -> None:
     result = EvidencePolicyAgent(_corpus(), UnsafeDrafter()).predict(
         {
@@ -110,6 +134,50 @@ def test_template_agent_auto_handles_plain_feedback() -> None:
     assert result.proposed_draft == result.draft_reply
     assert not result.draft_was_replaced
     assert result.evidence_case_ids == ("train-1",)
+
+
+def test_prediction_records_only_evidence_the_drafter_declares_used() -> None:
+    result = EvidencePolicyAgent(_corpus(), NoEvidenceDrafter()).predict(
+        {
+            "case_id": "test-1",
+            "conversation_id": "99",
+            "message": "Thank you to your brilliant cashier",
+            "prior_context": "",
+        }
+    )
+
+    assert result.evidence_case_ids == ()
+    assert result.evidence_quotes == ()
+    assert result.evidence_scores == ()
+
+
+def test_agent_rejects_drafter_evidence_outside_retrieved_pack() -> None:
+    with pytest.raises(ValueError, match="not retrieved"):
+        EvidencePolicyAgent(_corpus(), UnknownEvidenceDrafter()).predict(
+            {
+                "case_id": "test-1",
+                "conversation_id": "99",
+                "message": "Thank you to your brilliant cashier",
+                "prior_context": "",
+            }
+        )
+
+
+def test_draft_candidate_rejects_duplicate_or_blank_evidence_ids() -> None:
+    with pytest.raises(ValueError, match="unique"):
+        DraftCandidate(
+            predicted_intent="feedback_praise_or_suggestion",
+            intent_confidence=0.99,
+            draft_reply="Thanks.",
+            used_evidence_case_ids=("train-1", "train-1"),
+        )
+    with pytest.raises(ValueError, match="non-empty"):
+        DraftCandidate(
+            predicted_intent="feedback_praise_or_suggestion",
+            intent_confidence=0.99,
+            draft_reply="Thanks.",
+            used_evidence_case_ids=("",),
+        )
 
 
 def test_url_only_guardrail_produces_valid_escalation_and_replacement() -> None:
