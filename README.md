@@ -32,7 +32,8 @@ escalation a real decision rather than a confidence threshold added for show.
 
 An exploratory full-dataset scan found 38,573 Tesco-authored messages. Brand
 selection will be justified by a reproducible audit in the repository rather
-than by volume alone.
+than by volume alone. See the generated [Tesco data audit](docs/TESCO_DATA_AUDIT.md)
+for provenance, conversation structure, reply patterns, and outcome-proxy caveats.
 
 ## What “good” means
 
@@ -106,6 +107,7 @@ messages. It is intentionally separate from the future headline-results command:
 python -m pip install -e ".[dev]"
 python -m pytest
 python -m tescogpt prepare --input path/to/twcs.csv
+python -m tescogpt audit --manifest data/processed/tesco_messages.csv.manifest.json
 ```
 
 Raw and full processed datasets are gitignored. The command writes a long-form
