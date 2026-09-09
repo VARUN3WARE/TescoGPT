@@ -7,9 +7,12 @@ import pytest
 
 from tescogpt.evaluation.labels import (
     LABEL_COLUMNS,
+    freeze_human_annotations,
     initialize_annotation_rounds,
     validate_annotations,
 )
+
+CODEBOOK = Path(__file__).parents[1] / "docs" / "ANNOTATION_GUIDE.md"
 
 
 def _sheet(path: Path, **labels: str) -> Path:
@@ -112,3 +115,66 @@ def test_require_blind_rejects_sampling_metadata(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="exposes sampling metadata"):
         validate_annotations(path, require_blind=True)
+
+
+def test_freezes_independent_labels_and_rejects_context_edits(tmp_path: Path) -> None:
+    rows = []
+    for index in range(4):
+        rows.append(
+            {
+                "display_order": index + 1,
+                "case_id": f"tesco-{index}",
+                "sample_slice": "natural" if index < 3 else "challenge",
+                "conversation_id": index,
+                "tweet_id": index,
+                "created_at": "Wed Nov 01 09:00:00 +0000 2017",
+                "message": f"message {index}",
+                "prior_context": "",
+                "challenge_flags": "",
+                **{column: "" for column in LABEL_COLUMNS},
+            }
+        )
+    candidates = tmp_path / "candidates.csv"
+    pd.DataFrame(rows).to_csv(candidates, index=False)
+    round_one = tmp_path / "round1.csv"
+    round_two = tmp_path / "round2.csv"
+    manifest = tmp_path / "manifest.json"
+    initialize_annotation_rounds(
+        candidates,
+        round_one,
+        round_two,
+        manifest,
+        second_annotation_count=3,
+        seed=9,
+    )
+
+    for path, annotator in ((round_one, "human_a"), (round_two, "human_b")):
+        frame = pd.read_csv(path, dtype="string", keep_default_na=False)
+        frame["intent_label"] = "feedback_praise_or_suggestion"
+        frame["handling_label"] = "AUTO_HANDLE"
+        frame["reason_code"] = "NO_ACTION_NEEDED"
+        frame["annotator_id"] = annotator
+        frame.to_csv(path, index=False, lineterminator="\n")
+
+    frozen = freeze_human_annotations(
+        candidates,
+        round_one,
+        round_two,
+        manifest,
+        CODEBOOK,
+    )
+    assert frozen["label_status"] == "HUMAN_LABELED_UNADJUDICATED"
+    assert frozen["round_one_annotator_ids"] == ["human_a"]
+    assert frozen["round_two_annotator_ids"] == ["human_b"]
+
+    changed = pd.read_csv(round_two)
+    changed.loc[0, "message"] = "edited after sampling"
+    changed.to_csv(round_two, index=False)
+    with pytest.raises(ValueError, match="changed frozen message/context"):
+        freeze_human_annotations(
+            candidates,
+            round_one,
+            round_two,
+            manifest,
+            CODEBOOK,
+        )

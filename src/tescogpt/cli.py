@@ -11,12 +11,17 @@ from tescogpt.data.audit import audit_conversations
 from tescogpt.data.threads import extract_brand_conversations
 from tescogpt.evaluation.agreement import annotation_agreement
 from tescogpt.evaluation.judge import judge_human_agreement, judge_review_sheet
-from tescogpt.evaluation.labels import initialize_annotation_rounds, validate_annotations
+from tescogpt.evaluation.labels import (
+    freeze_human_annotations,
+    initialize_annotation_rounds,
+    validate_annotations,
+)
 from tescogpt.evaluation.metrics import evaluate_predictions
 from tescogpt.evaluation.reply_review import (
     initialize_reply_review,
     validate_reply_ratings,
 )
+from tescogpt.evaluation.reproduce import reproduce_project
 from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.evaluation.sampling import sample_golden_candidates
 from tescogpt.prediction import run_predictions
@@ -152,6 +157,28 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     labels_init.add_argument("--second-annotation-count", type=int, default=60)
     labels_init.add_argument("--seed", type=int, default=20260910)
+
+    labels_freeze = subparsers.add_parser(
+        "labels-freeze",
+        help="Verify completed human rounds and freeze their hashes.",
+    )
+    labels_freeze.add_argument(
+        "--candidates", type=Path, default=Path("data/golden/golden_candidates.csv")
+    )
+    labels_freeze.add_argument(
+        "--round-one", type=Path, default=Path("data/golden/round1_annotations.csv")
+    )
+    labels_freeze.add_argument(
+        "--round-two", type=Path, default=Path("data/golden/round2_annotations.csv")
+    )
+    labels_freeze.add_argument(
+        "--manifest",
+        type=Path,
+        default=Path("data/golden/annotation_rounds.manifest.json"),
+    )
+    labels_freeze.add_argument(
+        "--codebook", type=Path, default=Path("docs/ANNOTATION_GUIDE.md")
+    )
 
     predict = subparsers.add_parser(
         "predict",
@@ -312,6 +339,19 @@ def _build_parser() -> argparse.ArgumentParser:
         default=Path("outputs/evaluation/judge_human_agreement.json"),
     )
 
+    reproduce = subparsers.add_parser(
+        "reproduce",
+        help="Verify committed artifacts and reproduce offline evaluation outputs.",
+    )
+    reproduce.add_argument(
+        "--config", type=Path, default=Path("config/experiment.json")
+    )
+    reproduce.add_argument(
+        "--allow-incomplete",
+        action="store_true",
+        help="Run integrity/readiness checks without pretending labels are complete.",
+    )
+
     return parser
 
 
@@ -367,6 +407,17 @@ def main(argv: Sequence[str] | None = None) -> None:
             manifest_path=args.manifest,
             second_annotation_count=args.second_annotation_count,
             seed=args.seed,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "labels-freeze":
+        manifest = freeze_human_annotations(
+            candidates_path=args.candidates,
+            round_one_path=args.round_one,
+            round_two_path=args.round_two,
+            manifest_path=args.manifest,
+            codebook_path=args.codebook,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
         return
@@ -462,6 +513,14 @@ def main(argv: Sequence[str] | None = None) -> None:
             human_review_path=args.human_review,
             judge_paths=args.judge_outputs,
             output_path=args.output,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.command == "reproduce":
+        report = reproduce_project(
+            args.config,
+            allow_incomplete=args.allow_incomplete,
         )
         print(json.dumps(report, indent=2, sort_keys=True))
         return

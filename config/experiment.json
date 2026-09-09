@@ -1,0 +1,28 @@
+{
+  "experiment_schema_version": 1,
+  "status": "AWAITING_HUMAN_LABELS",
+  "gold_file": "data/golden/round1_annotations.csv",
+  "second_annotation_file": "data/golden/round2_annotations.csv",
+  "annotation_manifest": "data/golden/annotation_rounds.manifest.json",
+  "registry_file": "data/golden/golden_candidates.csv",
+  "registry_manifest": "data/golden/golden_candidates.manifest.json",
+  "codebook_file": "docs/ANNOTATION_GUIDE.md",
+  "prediction_files": [
+    "outputs/predictions/trivial.csv",
+    "outputs/predictions/simple.csv",
+    "outputs/predictions/main_template.csv"
+  ],
+  "retrieval_file": "outputs/retrieval/outcome_aware.csv",
+  "headline_system": null,
+  "bootstrap_iterations": 2000,
+  "seed": 20260911,
+  "metrics_output": "outputs/evaluation/metrics.json",
+  "static_safety_output": "outputs/evaluation/static_safety.json",
+  "static_safety_details": "outputs/evaluation/static_safety",
+  "annotation_agreement_output": "outputs/evaluation/annotation_agreement.json",
+  "reply_review_file": null,
+  "judge_output_files": [],
+  "judge_agreement_output": "outputs/evaluation/judge_human_agreement.json",
+  "headline_output": "outputs/evaluation/headline.md",
+  "reproduction_output": "outputs/evaluation/reproduction.json"
+}

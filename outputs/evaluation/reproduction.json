@@ -1,0 +1,85 @@
+{
+  "annotation_progress": {
+    "round_one": {
+      "annotator_ids": [],
+      "completed_count": 0,
+      "completion_pct": 0.0,
+      "file": "round1_annotations.csv",
+      "is_complete": false,
+      "remaining_count": 200,
+      "row_count": 200
+    },
+    "round_two": {
+      "annotator_ids": [],
+      "completed_count": 0,
+      "completion_pct": 0.0,
+      "file": "round2_annotations.csv",
+      "is_complete": false,
+      "remaining_count": 60,
+      "row_count": 60
+    }
+  },
+  "configured_status": "AWAITING_HUMAN_LABELS",
+  "elapsed_seconds": 0.2,
+  "integrity_checks": [
+    {
+      "actual_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
+      "expected_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
+      "file": "golden_candidates.csv",
+      "name": "golden candidate registry",
+      "passed": true
+    },
+    {
+      "actual_sha256": "6f3015d5322384374597805a1ee8ed2c8f59c34f9b9d94b3f497e9bb47c46711",
+      "expected_sha256": "6f3015d5322384374597805a1ee8ed2c8f59c34f9b9d94b3f497e9bb47c46711",
+      "file": "ANNOTATION_GUIDE.md",
+      "name": "annotation codebook",
+      "passed": true
+    },
+    {
+      "actual_sha256": "5d5ae00bf1e4e85fdab51f7f868cad98b77d27baa50d3bb6ee793942b7d8c074",
+      "expected_sha256": "5d5ae00bf1e4e85fdab51f7f868cad98b77d27baa50d3bb6ee793942b7d8c074",
+      "file": "round1_annotations.csv",
+      "name": "round one annotations",
+      "passed": true
+    },
+    {
+      "actual_sha256": "b83c3e3ad1a64dc7c8d23553ed88336a9735e1e5845ac05f586c51160a890d3e",
+      "expected_sha256": "b83c3e3ad1a64dc7c8d23553ed88336a9735e1e5845ac05f586c51160a890d3e",
+      "file": "round2_annotations.csv",
+      "name": "round two annotations",
+      "passed": true
+    },
+    {
+      "actual_sha256": "61a85a1e83730df125aa813a8ca94bbb609a819fbd5965d62c41f10b3d8f0690",
+      "expected_sha256": "61a85a1e83730df125aa813a8ca94bbb609a819fbd5965d62c41f10b3d8f0690",
+      "file": "trivial.csv",
+      "name": "prediction trivial_constant_v1",
+      "passed": true
+    },
+    {
+      "actual_sha256": "5c7b3a708dc5cf63ef94b9f8f5591cc9592b9f53af8b0267f9d32cf8303d7073",
+      "expected_sha256": "5c7b3a708dc5cf63ef94b9f8f5591cc9592b9f53af8b0267f9d32cf8303d7073",
+      "file": "simple.csv",
+      "name": "prediction simple_rules_bm25_v1",
+      "passed": true
+    },
+    {
+      "actual_sha256": "addbb0e20a8002d37314bdf4b3d12aa504f7e68f7a8ef15f61e34db3c6cc5742",
+      "expected_sha256": "addbb0e20a8002d37314bdf4b3d12aa504f7e68f7a8ef15f61e34db3c6cc5742",
+      "file": "main_template.csv",
+      "name": "prediction tescogpt_guarded_template_v1_policy_v1",
+      "passed": true
+    },
+    {
+      "actual_sha256": "78f3c36bf75662d6b0df76d0ae70d253bfaac60f87459e4f80bef2dca9ec56eb",
+      "expected_sha256": "78f3c36bf75662d6b0df76d0ae70d253bfaac60f87459e4f80bef2dca9ec56eb",
+      "file": "outcome_aware.csv",
+      "name": "outcome-aware retrieval",
+      "passed": true
+    }
+  ],
+  "reproduction_schema_version": 1,
+  "static_safety_system_count": 3,
+  "status": "AWAITING_HUMAN_LABELS"
+}

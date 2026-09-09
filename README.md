@@ -118,13 +118,20 @@ runnable without a secret. See [the architecture and trust boundaries](docs/AGEN
 
 ## Reproducibility contract
 
-The final `README` command must reproduce committed headline tables in under 15
-minutes without downloading the full dataset or making paid API calls. Rebuilding
-the corpus or regenerating model responses will remain an optional, documented
-workflow.
+The reproduction path reads committed labels and predictions; it does not need
+the full corpus or make paid API calls. Today it runs integrity and readiness
+checks in under one second and truthfully stops before headline evaluation
+because the human sheets are blank:
 
-Until that workflow exists, setup commands will not be advertised as complete.
-See [the project plan](docs/PROJECT_PLAN.md) for milestones and acceptance gates.
+```bash
+python -m pip install -e .
+python -m tescogpt reproduce --allow-incomplete
+```
+
+After labels, API predictions, human reply ratings, and judge runs are frozen,
+the final command is `python -m tescogpt reproduce`. It verifies artifact hashes,
+recomputes every aggregate, and enforces the 15-minute limit. See
+[the project plan](docs/PROJECT_PLAN.md) for milestones and acceptance gates.
 
 ### Current development command
 
@@ -160,6 +167,9 @@ dropdowns, an embedded codebook, frozen identifiers, and live progress counts.
 The two annotators must use separate workbooks and must not view each other's
 labels. After labelling, save only the `Annotations` sheet as CSV UTF-8 over the
 corresponding file in `data/golden`, then run `labels-check --require-complete`.
+Once both files pass, run `python -m tescogpt labels-freeze` to verify that no
+message or context changed, enforce distinct annotator IDs, and update the
+human-label hashes.
 
 Historical replies are retrieved only from the training period and reranked by
 weak follow-up evidence plus static safety penalties. The full method, its

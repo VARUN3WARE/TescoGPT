@@ -274,3 +274,110 @@ def initialize_annotation_rounds(
         newline="\n",
     )
     return manifest
+
+
+def _assert_context_unchanged(
+    annotations: pd.DataFrame,
+    candidates: pd.DataFrame,
+    *,
+    round_name: str,
+) -> None:
+    context_columns = (
+        "case_id",
+        "conversation_id",
+        "tweet_id",
+        "created_at",
+        "message",
+        "prior_context",
+    )
+    missing = sorted(
+        set(context_columns) - set(annotations.columns)
+        | set(context_columns) - set(candidates.columns)
+    )
+    if missing:
+        raise ValueError(f"Missing frozen context columns: {', '.join(missing)}")
+    annotation_context = (
+        annotations.loc[:, context_columns]
+        .astype(str)
+        .sort_values("case_id", kind="stable")
+        .reset_index(drop=True)
+    )
+    candidate_context = (
+        candidates.loc[candidates["case_id"].isin(annotations["case_id"]), context_columns]
+        .astype(str)
+        .sort_values("case_id", kind="stable")
+        .reset_index(drop=True)
+    )
+    if len(annotation_context) != len(candidate_context):
+        raise ValueError(f"{round_name} contains a case outside the frozen candidates")
+    changed = annotation_context.ne(candidate_context).any(axis=1)
+    if changed.any():
+        changed_ids = annotation_context.loc[changed, "case_id"].head(5).tolist()
+        raise ValueError(
+            f"{round_name} changed frozen message/context for: {', '.join(changed_ids)}"
+        )
+
+
+def freeze_human_annotations(
+    candidates_path: str | Path,
+    round_one_path: str | Path,
+    round_two_path: str | Path,
+    manifest_path: str | Path,
+    codebook_path: str | Path,
+) -> dict[str, Any]:
+    """Validate completed independent rounds and replace blank-sheet hashes."""
+    candidate_file = Path(candidates_path)
+    round_one_file = Path(round_one_path)
+    round_two_file = Path(round_two_path)
+    manifest_file = Path(manifest_path)
+    codebook_file = Path(codebook_path)
+    validate_annotations(round_one_file, require_complete=True, require_blind=True)
+    validate_annotations(round_two_file, require_complete=True, require_blind=True)
+    candidates = pd.read_csv(candidate_file, dtype="string", keep_default_na=False)
+    round_one = pd.read_csv(round_one_file, dtype="string", keep_default_na=False)
+    round_two = pd.read_csv(round_two_file, dtype="string", keep_default_na=False)
+    if set(round_one["case_id"]) != set(candidates["case_id"]):
+        raise ValueError("Round one case IDs must exactly match the frozen candidates")
+
+    existing = json.loads(manifest_file.read_text(encoding="utf-8"))
+    expected_round_two_ids = set(existing.get("round_two_case_ids", []))
+    if set(round_two["case_id"]) != expected_round_two_ids:
+        raise ValueError("Round two case IDs differ from the frozen overlap")
+    if _sha256(candidate_file) != existing.get("candidate_sha256"):
+        raise ValueError("Candidate file hash differs from the annotation-round manifest")
+    _assert_context_unchanged(round_one, candidates, round_name="Round one")
+    _assert_context_unchanged(round_two, candidates, round_name="Round two")
+
+    round_one_annotators = set(_values(round_one["annotator_id"])) - {""}
+    round_two_annotators = set(_values(round_two["annotator_id"])) - {""}
+    overlap = sorted(round_one_annotators & round_two_annotators)
+    if overlap:
+        raise ValueError(
+            "Independent rounds share annotator IDs: " + ", ".join(overlap)
+        )
+
+    existing.update(
+        {
+            "label_status": "HUMAN_LABELED_UNADJUDICATED",
+            "round_one_sha256": _sha256(round_one_file),
+            "round_two_sha256": _sha256(round_two_file),
+            "round_one_annotator_ids": sorted(round_one_annotators),
+            "round_two_annotator_ids": sorted(round_two_annotators),
+            "codebook_file": codebook_file.name,
+            "codebook_sha256": _sha256(codebook_file),
+            "round_one_intent_counts": {
+                str(label): int(count)
+                for label, count in round_one["intent_label"].value_counts().sort_index().items()
+            },
+            "round_one_handling_counts": {
+                str(label): int(count)
+                for label, count in round_one["handling_label"].value_counts().sort_index().items()
+            },
+        }
+    )
+    manifest_file.write_text(
+        json.dumps(existing, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return existing
