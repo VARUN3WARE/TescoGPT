@@ -308,6 +308,7 @@ def test_openai_drafter_uses_strict_schema_store_false_and_cache(tmp_path: Path)
     assert provenance["unique_request_count"] == 1
     assert provenance["api_call_count"] == 1
     assert provenance["cache_hit_count"] == 1
+    assert provenance["sdk_version"] == "2.54.0"
     assert provenance["resolved_models"] == ["test-model-2026-09-01"]
     assert provenance["usage_totals"]["total_tokens"] == 18
 

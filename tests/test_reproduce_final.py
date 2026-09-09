@@ -393,6 +393,7 @@ Collect real human evidence.
                     "model": model,
                     "generation_provenance": {
                         "provider": "openai",
+                        "sdk_version": "synthetic-sdk-1",
                         "requested_model": model,
                         "resolved_models": ["synthetic-main-model-2026-09-01"],
                         "instructions_sha256": "a" * 64,
@@ -547,6 +548,7 @@ Collect real human evidence.
                 "row_count": len(reply_rows),
                 "judge_provenance": {
                     "provider": "openai",
+                    "sdk_version": "synthetic-sdk-1",
                     "requested_model": "synthetic-judge-v1",
                     "resolved_models": ["synthetic-judge-v1-resolved"],
                     "replicate": replicate,

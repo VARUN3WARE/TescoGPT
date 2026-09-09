@@ -18,6 +18,7 @@ from tescogpt.evaluation.reply_review import (
     validate_reply_ratings,
     validate_reply_review_key,
 )
+from tescogpt.openai_api import openai_sdk_version
 
 
 @dataclass(frozen=True)
@@ -165,6 +166,7 @@ class OpenAIReplyJudge:
             raise ValueError("replicate must be positive")
         self.model = model
         self.replicate = replicate
+        self._sdk_version = openai_sdk_version()
         self._cache_dir = Path(cache_dir)
         self._schema_text = json.dumps(_JUDGE_SCHEMA, sort_keys=True)
         self._instructions_sha256 = hashlib.sha256(
@@ -218,6 +220,7 @@ class OpenAIReplyJudge:
                     usage_totals[key] = usage_totals.get(key, 0) + value
         return {
             "provider": "openai",
+            "sdk_version": self._sdk_version,
             "requested_model": self.model,
             "resolved_models": sorted(
                 {
@@ -251,6 +254,7 @@ class OpenAIReplyJudge:
         request_hash = hashlib.sha256(
             (
                 self.model
+                + f"\nopenai-python={self._sdk_version}"
                 + f"\nreplicate={self.replicate}\n"
                 + _JUDGE_INSTRUCTIONS
                 + "\n"
@@ -267,6 +271,7 @@ class OpenAIReplyJudge:
                 "instructions_sha256": self._instructions_sha256,
                 "schema_sha256": self._schema_sha256,
                 "model": self.model,
+                "sdk_version": self._sdk_version,
                 "replicate": self.replicate,
             }
             if any(cached.get(key) != value for key, value in expected_cache.items()):
@@ -307,6 +312,7 @@ class OpenAIReplyJudge:
                         "instructions_sha256": self._instructions_sha256,
                         "schema_sha256": self._schema_sha256,
                         "model": self.model,
+                        "sdk_version": self._sdk_version,
                         "replicate": self.replicate,
                         "response_id": response_id,
                         "response_model": response_model,
@@ -453,6 +459,8 @@ def validate_judge_output(
             provenance = manifest.get("judge_provenance", {})
             if provenance.get("provider") != "openai":
                 raise ValueError("Judge provenance provider must be openai")
+            if not str(provenance.get("sdk_version", "")).strip():
+                raise ValueError("Judge provenance lacks an OpenAI SDK version")
             if provenance.get("requested_model") != models[0]:
                 raise ValueError("Judge provenance model differs from output")
             if int(provenance.get("replicate", 0)) != int(replicates.iloc[0]):

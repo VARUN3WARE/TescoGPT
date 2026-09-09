@@ -126,6 +126,7 @@ def test_openai_drafter_serializes_a_responses_api_request(tmp_path: Path) -> No
     assert request["text"]["format"]["type"] == "json_schema"
     assert request["text"]["format"]["strict"] is True
     assert candidate.draft_reply == output["draft_reply"]
+    assert drafter.provenance()["sdk_version"] == "2.54.0"
     assert drafter.provenance()["resolved_models"] == ["resolved-draft-model"]
 
 
@@ -166,4 +167,5 @@ def test_openai_judge_serializes_a_responses_api_request(tmp_path: Path) -> None
     _walk_schema(request["text"]["format"]["schema"], schema_keys.append)
     assert not {"uniqueItems", "minLength", "maxLength"} & set(schema_keys)
     assert rating.overall_pass == "PASS"
+    assert judge.provenance()["sdk_version"] == "2.54.0"
     assert judge.provenance()["resolved_models"] == ["resolved-judge-model"]

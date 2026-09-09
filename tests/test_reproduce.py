@@ -16,6 +16,7 @@ def _manifest() -> dict:
         "model": "test-model",
         "generation_provenance": {
             "provider": "openai",
+            "sdk_version": "2.54.0",
             "requested_model": "test-model",
             "resolved_models": ["test-model-2026-09-01"],
             "instructions_sha256": "b" * 64,
@@ -49,6 +50,19 @@ def test_api_prediction_provenance_rejects_changed_case_identity() -> None:
     with pytest.raises(ValueError, match="request IDs differ"):
         _validate_generation_provenance(
             _manifest(),
+            predictions,
+            Path("predictions.csv"),
+        )
+
+
+def test_api_prediction_provenance_requires_an_sdk_version() -> None:
+    predictions = pd.DataFrame([{"case_id": "case-1"}])
+    manifest = _manifest()
+    del manifest["generation_provenance"]["sdk_version"]
+
+    with pytest.raises(ValueError, match="lacks an OpenAI SDK version"):
+        _validate_generation_provenance(
+            manifest,
             predictions,
             Path("predictions.csv"),
         )

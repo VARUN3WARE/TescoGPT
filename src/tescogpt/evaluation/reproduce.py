@@ -115,6 +115,8 @@ def _validate_generation_provenance(
     provenance = manifest.get("generation_provenance", {})
     if provenance.get("provider") != "openai":
         raise ValueError(f"API prediction lacks OpenAI provenance: {path}")
+    if not str(provenance.get("sdk_version", "")).strip():
+        raise ValueError(f"API prediction lacks an OpenAI SDK version: {path}")
     if provenance.get("requested_model") != model:
         raise ValueError(f"API prediction model differs from provenance: {path}")
     for field in ("instructions_sha256", "schema_sha256"):

@@ -11,6 +11,7 @@ from typing import Any, Protocol
 
 from tescogpt.agent.intent import classify_intent
 from tescogpt.evaluation.labels import INTENT_LABELS
+from tescogpt.openai_api import openai_sdk_version
 from tescogpt.retrieval.outcome import Precedent
 
 
@@ -165,6 +166,7 @@ class OpenAIDrafter:
             raise ValueError("An explicit OpenAI model ID is required")
         self.model = model
         self.name = f"openai_{model}_v1"
+        self._sdk_version = openai_sdk_version()
         self._cache_dir = Path(cache_dir)
         self._schema_text = json.dumps(_DRAFT_SCHEMA, sort_keys=True)
         self._instructions_sha256 = hashlib.sha256(
@@ -228,6 +230,7 @@ class OpenAIDrafter:
                     usage_totals[key] = usage_totals.get(key, 0) + value
         return {
             "provider": "openai",
+            "sdk_version": self._sdk_version,
             "requested_model": self.model,
             "resolved_models": sorted(
                 {
@@ -283,6 +286,7 @@ class OpenAIDrafter:
         request_hash = hashlib.sha256(
             (
                 self.model
+                + f"\nopenai-python={self._sdk_version}"
                 + "\n"
                 + _INSTRUCTIONS
                 + "\n"
@@ -299,6 +303,7 @@ class OpenAIDrafter:
                 "instructions_sha256": self._instructions_sha256,
                 "schema_sha256": self._schema_sha256,
                 "model": self.model,
+                "sdk_version": self._sdk_version,
             }
             if any(cached.get(key) != value for key, value in expected_cache.items()):
                 raise ValueError("Cached draft provenance does not match this request")
@@ -335,6 +340,7 @@ class OpenAIDrafter:
                 "instructions_sha256": self._instructions_sha256,
                 "schema_sha256": self._schema_sha256,
                 "model": self.model,
+                "sdk_version": self._sdk_version,
                 "response_id": response_id,
                 "response_model": response_model,
                 "usage": usage,

@@ -29,14 +29,16 @@ LLM result.
 - uses the Responses API with a strict JSON schema and `store=False`;
 - limits the public draft to 280 characters;
 - verifies that every cited evidence ID was actually retrieved; and
-- hashes model, instructions, schema, and input into a resumable local cache.
+- hashes the pinned SDK version, model, instructions, schema, and input into a
+  resumable local cache.
 
-The final prediction manifest records instruction and schema hashes, every case
-request hash, cache-hit status, response ID, resolved response model, and token
-usage. Cache records with mismatched provenance or invalid result fields are
-rejected rather than silently reused. Offline validation also reconciles unique
-request, cache-hit, and API-call counts against the per-case traces and rejects
-missing or inconsistent resolved-model lineage.
+The final prediction manifest records the OpenAI SDK version, instruction and
+schema hashes, every case request hash, cache-hit status, response ID, resolved
+response model, and token usage. Cache records with mismatched provenance or
+invalid result fields are rejected rather than silently reused. Offline
+validation also reconciles unique request, cache-hit, and API-call counts
+against the per-case traces and rejects missing or inconsistent SDK and
+resolved-model lineage.
 
 Per-row `evidence_case_ids`, quotes, and scores contain only the retrieved
 precedents the drafter explicitly declares it used. An unknown or duplicate ID
@@ -50,8 +52,10 @@ exactly cover the frozen registry, and its row count, filenames, system ID, and
 input/output hashes must match the manifest. A hash-consistent but incomplete or
 malformed prediction file therefore still fails the experiment preflight.
 
-The integration follows the official
-[Responses API reference](https://developers.openai.com/api/reference/cli/resources/responses/methods/create).
+The integration follows the official [Responses API
+reference](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
+and [Structured Outputs
+guide](https://developers.openai.com/api/docs/guides/structured-outputs).
 No API-backed artifact is committed yet because this environment has no API key.
 That absence is recorded rather than replaced with invented model output.
 

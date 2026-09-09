@@ -320,6 +320,7 @@ def test_openai_judge_is_blinded_structured_and_cached(tmp_path: Path) -> None:
     assert provenance["request_count"] == 2
     assert provenance["api_call_count"] == 1
     assert provenance["cache_hit_count"] == 1
+    assert provenance["sdk_version"] == "2.54.0"
     assert provenance["resolved_models"] == ["judge-model-2026-09-01"]
     assert provenance["usage_totals"]["total_tokens"] == 30
 
@@ -380,6 +381,7 @@ def test_judge_manifest_contains_request_level_provenance(tmp_path: Path) -> Non
     assert provenance["request_count"] == 1
     assert provenance["requests"][0]["review_id"] == "review-1"
     assert provenance["instructions_sha256"]
+    assert provenance["sdk_version"] == "2.54.0"
     validate_judge_output(
         output,
         review_path=review,
