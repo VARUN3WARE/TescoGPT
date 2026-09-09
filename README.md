@@ -91,11 +91,16 @@ Planned primary measures:
 
 ## Baselines
 
-1. **Trivial:** majority intent, generic acknowledgement, always escalate.
-2. **Simple:** TF-IDF/logistic-regression intent, BM25 nearest historical reply,
-   and explicit keyword/policy routing rules.
+1. **Trivial:** constant `other_or_unclear` intent, generic acknowledgement,
+   always escalate.
+2. **Simple:** ordered keyword intent rules, BM25 nearest historical reply, and
+   explicit safety/policy routing rules.
 3. **Ablations:** the main system without retrieval and without the outcome
    evidence filter.
+
+Their exact frozen behavior and limitations are documented in
+[the baseline definitions](docs/BASELINES.md). Both emit the same validated
+schema as the final agent.
 
 ## Reproducibility contract
 

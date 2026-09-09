@@ -11,6 +11,7 @@ from tescogpt.data.audit import audit_conversations
 from tescogpt.data.threads import extract_brand_conversations
 from tescogpt.evaluation.labels import initialize_annotation_rounds, validate_annotations
 from tescogpt.evaluation.sampling import sample_golden_candidates
+from tescogpt.prediction import run_predictions
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -143,6 +144,24 @@ def _build_parser() -> argparse.ArgumentParser:
     labels_init.add_argument("--second-annotation-count", type=int, default=60)
     labels_init.add_argument("--seed", type=int, default=20260910)
 
+    predict = subparsers.add_parser(
+        "predict",
+        help="Run a baseline over a case sheet using the shared output contract.",
+    )
+    predict.add_argument("--system", choices=("trivial", "simple"), required=True)
+    predict.add_argument(
+        "--input",
+        type=Path,
+        default=Path("data/golden/golden_candidates.csv"),
+    )
+    predict.add_argument(
+        "--corpus",
+        type=Path,
+        default=Path("data/processed/tesco_cases.csv"),
+        help="Historical case corpus; required by the simple baseline.",
+    )
+    predict.add_argument("--output", type=Path, required=True)
+
     return parser
 
 
@@ -198,6 +217,16 @@ def main(argv: Sequence[str] | None = None) -> None:
             manifest_path=args.manifest,
             second_annotation_count=args.second_annotation_count,
             seed=args.seed,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "predict":
+        manifest = run_predictions(
+            system=args.system,
+            input_path=args.input,
+            output_path=args.output,
+            corpus_path=args.corpus if args.system == "simple" else None,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
         return

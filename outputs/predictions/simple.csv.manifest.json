@@ -1,0 +1,13 @@
+{
+  "corpus_file": "tesco_cases.csv",
+  "corpus_row_count": 17345,
+  "corpus_sha256": "dce80d676b7a1979b5a8454b24ef86d5be12c2fbbad26a2ef497b627e65481bb",
+  "corpus_split": "train",
+  "input_file": "golden_candidates.csv",
+  "input_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
+  "prediction_file": "simple.csv",
+  "prediction_schema_version": 1,
+  "prediction_sha256": "a13ee17b8f97badd2bd4e2954c0cb9eac0e30b599057150b0be862e173755777",
+  "row_count": 200,
+  "system": "simple_rules_bm25_v1"
+}
