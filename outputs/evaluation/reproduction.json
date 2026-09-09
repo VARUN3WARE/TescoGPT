@@ -97,5 +97,17 @@
   "runtime_limit_seconds": 900,
   "static_safety_system_count": 3,
   "status": "AWAITING_HUMAN_LABELS",
+  "submission_package": {
+    "citations_file": "CITATIONS.md",
+    "configured_gold_count": 200,
+    "decision_count": 15,
+    "decision_log_file": "DECISIONS.md",
+    "golden_candidate_count": 200,
+    "is_complete": true,
+    "issues": [],
+    "readme_file": "README.md",
+    "registry_file": "golden_candidates.csv",
+    "submission_package_schema_version": 1
+  },
   "under_15_minutes": true
 }

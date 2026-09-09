@@ -160,7 +160,10 @@ the final command is `python -m tescogpt reproduce`. It verifies artifact hashes
 re-parses every prediction through the shared output contract, requires exact
 case coverage, rejects a still-pending or oversized report, recomputes every
 aggregate, writes one reviewer-facing `evidence_summary.md`, and enforces the
-15-minute limit. The measured runtime is printed for each invocation, while the
+15-minute limit. It also rejects a missing reproduction README, citation and AI-
+assistance record, non-consecutive or out-of-range 10–15 item decision log, or
+golden candidate registry outside the required 150–250 examples. The measured
+runtime is printed for each invocation, while the
 tracked reproduction artifact stores only the limit and pass/fail result so a
 successful rerun does not dirty a clean checkout. The summary is generated from
 the source JSON/CSV artifacts so it cannot become an independently edited set of

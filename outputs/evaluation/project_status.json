@@ -66,6 +66,7 @@
     "report_submission_ready": false,
     "required_baselines_frozen": true,
     "retrieval_review_frozen": false,
+    "submission_package_complete": true,
     "three_systems_frozen": true,
     "two_judge_replicates_frozen": false
   },
@@ -156,5 +157,17 @@
     "max_words": 2400,
     "required_section_count": 5,
     "word_count": 1797
+  },
+  "submission_package": {
+    "citations_file": "CITATIONS.md",
+    "configured_gold_count": 200,
+    "decision_count": 15,
+    "decision_log_file": "DECISIONS.md",
+    "golden_candidate_count": 200,
+    "is_complete": true,
+    "issues": [],
+    "readme_file": "README.md",
+    "registry_file": "golden_candidates.csv",
+    "submission_package_schema_version": 1
   }
 }

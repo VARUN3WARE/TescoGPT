@@ -29,6 +29,7 @@ from tescogpt.evaluation.retrieval_review import (
     validate_retrieval_review_key,
 )
 from tescogpt.evaluation.safety import audit_prediction_safety
+from tescogpt.evaluation.submission import validate_submission_package
 from tescogpt.evaluation.summary import write_evidence_summary
 from tescogpt.prediction import validate_prediction_artifact
 from tescogpt.retrieval.outcome import validate_retrieval_artifact
@@ -419,6 +420,11 @@ def reproduce_project(
     config = json.loads(config_file.read_text(encoding="utf-8"))
     if config.get("experiment_schema_version") != 1:
         raise ValueError("Unsupported experiment configuration schema")
+    submission_package = validate_submission_package(
+        root,
+        config,
+        require_complete=config.get("status") == "FINAL",
+    )
     if config.get("status") == "FINAL":
         validate_submission_report(
             _resolve(root, config["report_file"]),
@@ -451,6 +457,7 @@ def reproduce_project(
             "round_two": round_two_progress,
         },
         "static_safety_system_count": len(safety["systems"]),
+        "submission_package": submission_package,
     }
     relevance_manifest_path = _resolve(root, config["retrieval_review_manifest"])
     relevance_manifest = json.loads(relevance_manifest_path.read_text(encoding="utf-8"))

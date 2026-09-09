@@ -38,9 +38,8 @@ def _write_json(path: Path, value: dict[str, object]) -> Path:
 
 
 def _annotation_rows(annotator_id: str) -> list[dict[str, object]]:
-    cases = [
+    templates = [
         (
-            "case-1",
             "Where is my grocery delivery?",
             "delivery_or_collection",
             "ESCALATE",
@@ -48,7 +47,6 @@ def _annotation_rows(annotator_id: str) -> list[dict[str, object]]:
             "account_or_order",
         ),
         (
-            "case-2",
             "The cashier was wonderful today.",
             "feedback_praise_or_suggestion",
             "AUTO_HANDLE",
@@ -56,7 +54,6 @@ def _annotation_rows(annotator_id: str) -> list[dict[str, object]]:
             "",
         ),
         (
-            "case-3",
             "This meal made me ill.",
             "product_quality_or_safety",
             "ESCALATE",
@@ -64,7 +61,6 @@ def _annotation_rows(annotator_id: str) -> list[dict[str, object]]:
             "food_safety",
         ),
         (
-            "case-4",
             "Does this product contain peanuts?",
             "product_information",
             "ESCALATE",
@@ -73,7 +69,9 @@ def _annotation_rows(annotator_id: str) -> list[dict[str, object]]:
         ),
     ]
     rows = []
-    for index, (case_id, message, intent, handling, reason, risks) in enumerate(cases, 1):
+    for index in range(1, 151):
+        message, intent, handling, reason, risks = templates[(index - 1) % len(templates)]
+        case_id = f"case-{index}"
         labels = {
             "intent_label": intent,
             "secondary_intent": "",
@@ -92,7 +90,7 @@ def _annotation_rows(annotator_id: str) -> list[dict[str, object]]:
                 "case_id": case_id,
                 "conversation_id": f"conversation-{index}",
                 "tweet_id": f"tweet-{index}",
-                "created_at": f"2017-01-0{index}T00:00:00Z",
+                "created_at": "2017-01-01T00:00:00Z",
                 "message": message,
                 "prior_context": "",
                 **labels,
@@ -279,6 +277,39 @@ def _judge_rows(
 
 def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None:
     root = tmp_path / "synthetic_project"
+    (root / "README.md").parent.mkdir(parents=True)
+    (root / "README.md").write_text(
+        """# Synthetic project
+
+[Report](REPORT.md) · [Decisions](DECISIONS.md) · [Sources](CITATIONS.md)
+
+Reproduce within the 15-minute contract:
+
+    python -m pip install -e .
+    python -m tescogpt reproduce
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
+    (root / "DECISIONS.md").write_text(
+        "# Decision log\n\n"
+        + "\n".join(
+            f"{index}. **Synthetic decision {index}.** Reason."
+            for index in range(1, 11)
+        )
+        + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    (root / "CITATIONS.md").write_text(
+        """# Sources
+
+Dataset: https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter
+An AI coding assistant was used. Method: https://doi.org/example
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
     codebook = root / "docs" / "ANNOTATION_GUIDE.md"
     codebook.parent.mkdir(parents=True)
     codebook.write_text("# Synthetic frozen codebook\n", encoding="utf-8", newline="\n")
@@ -314,7 +345,7 @@ Collect real human evidence.
 
     annotations = _annotation_rows("human-round-one")
     round_one = _write_csv(root / "data/golden/round1.csv", annotations)
-    round_two_rows = [{**row, "annotator_id": "human-round-two"} for row in annotations[:2]]
+    round_two_rows = [{**row, "annotator_id": "human-round-two"} for row in annotations[:60]]
     round_two = _write_csv(root / "data/golden/round2.csv", round_two_rows)
     final_rows = [{**row, "annotator_id": "human-adjudicator"} for row in annotations]
     gold = _write_csv(root / "data/golden/final.csv", final_rows)
@@ -324,12 +355,15 @@ Collect real human evidence.
             "case_id": f"case-{index}",
             "conversation_id": f"conversation-{index}",
             "tweet_id": f"tweet-{index}",
-            "created_at": f"2017-01-0{index}T00:00:00Z",
+            "created_at": "2017-01-01T00:00:00Z",
             "message": annotations[index - 1]["message"],
             "prior_context": "",
             "sample_slice": sample_slice,
         }
-        for index, sample_slice in enumerate(("natural", "natural", "challenge", "challenge"), 1)
+        for index, sample_slice in enumerate(
+            ("natural" if index <= 112 else "challenge" for index in range(1, 151)),
+            1,
+        )
     ]
     registry = _write_csv(root / "data/golden/registry.csv", registry_rows)
     _write_json(
@@ -344,10 +378,10 @@ Collect real human evidence.
         {
             "label_status": "HUMAN_LABELED_ADJUDICATED",
             "candidate_sha256": _sha256(registry),
-            "round_one_count": 4,
+            "round_one_count": 150,
             "round_one_sha256": _sha256(round_one),
-            "round_two_count": 2,
-            "round_two_case_ids": ["case-1", "case-2"],
+            "round_two_count": 60,
+            "round_two_case_ids": [f"case-{index}" for index in range(1, 61)],
             "round_two_sha256": _sha256(round_two),
             "final_sha256": _sha256(gold),
         },
@@ -427,7 +461,7 @@ Collect real human evidence.
                 "historical_reply": "Synthetic precedent reply.",
                 "customer_followup": "Synthetic follow-up.",
             }
-            for index in range(1, 5)
+            for index in range(1, 151)
         ],
     )
     _write_json(
@@ -435,8 +469,8 @@ Collect real human evidence.
         {
             "input_sha256": _sha256(registry),
             "output_sha256": _sha256(retrieval),
-            "query_count": 4,
-            "retrieved_row_count": 4,
+            "query_count": 150,
+            "retrieved_row_count": 150,
             "top_k": 1,
             "corpus_split": "train",
         },
@@ -566,8 +600,8 @@ Collect real human evidence.
     config = {
         "experiment_schema_version": 1,
         "status": "FINAL",
-        "expected_gold_count": 4,
-        "expected_overlap_count": 2,
+        "expected_gold_count": 150,
+        "expected_overlap_count": 60,
         "expected_retrieval_query_count": 2,
         "expected_reply_review_case_count": 2,
         "expected_reply_control_count": 1,
@@ -630,7 +664,8 @@ Collect real human evidence.
     assert report["under_15_minutes"] is True
     assert report["runtime_limit_seconds"] == 900
     assert report["elapsed_seconds"] >= 0
-    assert report["annotation_agreement_overlap"] == 2
+    assert report["annotation_agreement_overlap"] == 60
+    assert report["submission_package"]["is_complete"] is True
     assert report["evaluated_system_count"] == 3
     assert report["retrieval_evaluated_system_count"] == 2
     assert report["reply_quality_system_count"] == 3

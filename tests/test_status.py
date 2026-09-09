@@ -66,6 +66,8 @@ def test_status_reports_first_concrete_checkpoint_and_writes_artifact(
     assert not report["ready_for_final_reproduction"]
     assert report["next_action"]["gate"] == "primary_annotations_complete"
     assert report["human_progress"]["round_one"]["remaining_count"] == 2
+    assert not report["gates"]["submission_package_complete"]
+    assert not report["submission_package"]["is_complete"]
     assert (config.parent.parent / "outputs" / "status.json").is_file()
 
 

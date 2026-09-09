@@ -19,6 +19,7 @@ from tescogpt.evaluation.reproduce import (
     verify_artifact_integrity,
 )
 from tescogpt.evaluation.retrieval_review import validate_retrieval_review
+from tescogpt.evaluation.submission import validate_submission_package
 
 
 def _resolve(root: Path, value: str | None) -> Path | None:
@@ -119,6 +120,7 @@ def project_status(
     config_file = Path(config_path).resolve()
     root = config_file.parent.parent
     config = json.loads(config_file.read_text(encoding="utf-8"))
+    submission_package = validate_submission_package(root, config)
 
     report_path = _resolve(root, config.get("report_file"))
     if report_path is not None and report_path.is_file():
@@ -301,6 +303,7 @@ def project_status(
             and reply_manifest.get("label_status") == "HUMAN_RATED"
         ),
         "two_judge_replicates_frozen": _judge_replicates_ready(judge_runs),
+        "submission_package_complete": bool(submission_package["is_complete"]),
         "report_submission_ready": bool(report_status["is_submission_ready"]),
         "config_marked_final": config.get("status") == "FINAL",
     }
@@ -337,6 +340,9 @@ def project_status(
         "two_judge_replicates_frozen": (
             "Run and freeze at least two judge replicates over the same human review."
         ),
+        "submission_package_complete": (
+            "Restore the README, 10–15 decision log, citations, and 150–250-case registry."
+        ),
         "report_submission_ready": (
             "Replace pending results and change REPORT.md to SUBMISSION_STATUS: READY."
         ),
@@ -369,6 +375,7 @@ def project_status(
         "api_systems": sorted(api_systems),
         "headline_system": headline_system,
         "judge_runs": judge_runs,
+        "submission_package": submission_package,
         "report": report_status,
         "final_integrity_check_count": len(final_integrity_checks),
     }
