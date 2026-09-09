@@ -1,0 +1,146 @@
+{
+  "annotation_manifest_status": "UNLABELED",
+  "api_systems": [],
+  "blockers": [
+    {
+      "gate": "primary_annotations_complete",
+      "next_action": "Complete outputs/annotation_workbook/round1_annotation.xlsx and export its Annotations sheet to data/golden/round1_annotations.csv."
+    },
+    {
+      "gate": "independent_annotations_complete",
+      "next_action": "Have a different person complete round2_annotation.xlsx independently."
+    },
+    {
+      "gate": "independent_rounds_frozen",
+      "next_action": "Run: python -m tescogpt labels-freeze"
+    },
+    {
+      "gate": "categorical_adjudication_complete",
+      "next_action": "Run annotation-agreement, adjudication-init, human resolution, and adjudication-finalize."
+    },
+    {
+      "gate": "distinct_final_gold_configured",
+      "next_action": "Point gold_file at data/golden/final_annotations.csv."
+    },
+    {
+      "gate": "retrieval_review_frozen",
+      "next_action": "Complete the blind retrieval review and run retrieval-review-freeze."
+    },
+    {
+      "gate": "api_main_prediction_frozen",
+      "next_action": "Run main-openai over all 200 cases with an explicit model ID."
+    },
+    {
+      "gate": "headline_system_is_api_main",
+      "next_action": "Set headline_system to the frozen API-backed system ID."
+    },
+    {
+      "gate": "reply_review_frozen",
+      "next_action": "Create, complete, and freeze the system-blinded reply-quality review."
+    },
+    {
+      "gate": "two_judge_replicates_frozen",
+      "next_action": "Run and freeze at least two judge replicates over the same human review."
+    },
+    {
+      "gate": "config_marked_final",
+      "next_action": "Finish the report, replace pending settings, and set config status to FINAL."
+    }
+  ],
+  "configured_status": "AWAITING_HUMAN_LABELS",
+  "gates": {
+    "api_main_prediction_frozen": false,
+    "categorical_adjudication_complete": false,
+    "config_marked_final": false,
+    "distinct_final_gold_configured": false,
+    "headline_system_is_api_main": false,
+    "independent_annotations_complete": false,
+    "independent_rounds_frozen": false,
+    "primary_annotations_complete": false,
+    "reply_review_frozen": false,
+    "required_baselines_frozen": true,
+    "retrieval_review_frozen": false,
+    "three_systems_frozen": true,
+    "two_judge_replicates_frozen": false
+  },
+  "headline_system": null,
+  "human_progress": {
+    "adjudication": {
+      "completed_count": 0,
+      "file": "adjudication.csv",
+      "is_complete": false,
+      "remaining_count": null,
+      "row_count": 0,
+      "status": "NOT_STARTED"
+    },
+    "reply_review": {
+      "completed_count": 0,
+      "file": "reply_review.csv",
+      "is_complete": false,
+      "remaining_count": null,
+      "row_count": 0,
+      "status": "NOT_STARTED"
+    },
+    "retrieval_review": {
+      "completed_count": 0,
+      "file": "retrieval_relevance.csv",
+      "is_complete": false,
+      "query_count": 25,
+      "remaining_count": 117,
+      "reviewer_ids": [],
+      "row_count": 117,
+      "status": "IN_PROGRESS"
+    },
+    "round_one": {
+      "annotator_ids": [],
+      "completed_count": 0,
+      "completion_pct": 0.0,
+      "file": "round1_annotations.csv",
+      "is_complete": false,
+      "remaining_count": 200,
+      "row_count": 200
+    },
+    "round_two": {
+      "annotator_ids": [],
+      "completed_count": 0,
+      "completion_pct": 0.0,
+      "file": "round2_annotations.csv",
+      "is_complete": false,
+      "remaining_count": 60,
+      "row_count": 60
+    }
+  },
+  "judge_runs": [],
+  "next_action": {
+    "gate": "primary_annotations_complete",
+    "next_action": "Complete outputs/annotation_workbook/round1_annotation.xlsx and export its Annotations sheet to data/golden/round1_annotations.csv."
+  },
+  "predictions": [
+    {
+      "api_backed": false,
+      "file": "trivial.csv",
+      "model": null,
+      "row_count": 200,
+      "status": "FROZEN",
+      "system": "trivial_constant_v1"
+    },
+    {
+      "api_backed": false,
+      "file": "simple.csv",
+      "model": null,
+      "row_count": 200,
+      "status": "FROZEN",
+      "system": "simple_rules_bm25_v1"
+    },
+    {
+      "api_backed": false,
+      "file": "main_template.csv",
+      "model": null,
+      "row_count": 200,
+      "status": "FROZEN",
+      "system": "tescogpt_guarded_template_v1_policy_v1"
+    }
+  ],
+  "project_status_schema_version": 1,
+  "ready_for_final_reproduction": false
+}

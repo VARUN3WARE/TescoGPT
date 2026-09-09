@@ -88,7 +88,7 @@ registry, while `round1_annotations.csv` and `round2_annotations.csv` are the
 blinded files given to annotators. Headline scoring will use the distinct
 `final_annotations.csv` produced after disagreement adjudication.
 
-Planned primary measures:
+Frozen primary measures:
 
 - intent macro-F1 with bootstrap confidence intervals;
 - unsafe auto-handle rate and its confidence bound;
@@ -142,12 +142,14 @@ because the human sheets are blank:
 
 ```bash
 python -m pip install -e .
+python -m tescogpt status
 python -m tescogpt reproduce --allow-incomplete
 ```
 
 After labels, API predictions, human reply ratings, and judge runs are frozen,
 the final command is `python -m tescogpt reproduce`. It verifies artifact hashes,
 recomputes every aggregate, and enforces the 15-minute limit. See
+[the completion runbook](docs/COMPLETION_RUNBOOK.md) for the exact handoff and
 [the project plan](docs/PROJECT_PLAN.md) for milestones and acceptance gates.
 
 ### Current development command

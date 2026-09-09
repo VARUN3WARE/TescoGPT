@@ -19,9 +19,9 @@ after the results are known.
 6. **Make risk at a stated coverage the routing headline.** Escalation accuracy is
    misleading because an always-escalate system can score well while automating
    nothing.
-7. **Freeze human labels before threshold tuning.** Development thresholds will
-   use a separate development set; the golden set is for final evaluation and
-   regression checks.
+7. **Freeze policy thresholds before reading golden labels.** Current values are
+   documented engineering priors, not fitted probabilities. Any later tuning
+   requires a separately labelled development set; the gold set remains final-only.
 8. **Prefer deterministic safety checks around probabilistic models.** Public PII
    requests, unsupported commitments, and critical safety phrases should not
    depend only on an LLM confidence value. Retain blocked proposals so safety

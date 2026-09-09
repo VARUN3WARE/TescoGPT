@@ -35,5 +35,6 @@
   "failure_events_output": "outputs/evaluation/failure_events.csv",
   "failure_analysis_output": "outputs/evaluation/failure_analysis.json",
   "headline_output": "outputs/evaluation/headline.md",
-  "reproduction_output": "outputs/evaluation/reproduction.json"
+  "reproduction_output": "outputs/evaluation/reproduction.json",
+  "status_output": "outputs/evaluation/project_status.json"
 }

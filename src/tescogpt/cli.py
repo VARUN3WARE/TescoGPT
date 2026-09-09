@@ -38,6 +38,7 @@ from tescogpt.evaluation.retrieval_review import (
 )
 from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.evaluation.sampling import sample_golden_candidates
+from tescogpt.evaluation.status import project_status
 from tescogpt.prediction import run_predictions
 from tescogpt.retrieval.outcome import write_retrieval_artifact
 
@@ -451,6 +452,21 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Run integrity/readiness checks without pretending labels are complete.",
     )
 
+    status = subparsers.add_parser(
+        "status",
+        help="Show every human/API checkpoint and the next action for the final run.",
+    )
+    status.add_argument(
+        "--config", type=Path, default=Path("config/experiment.json")
+    )
+    status.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Override status_output from the experiment config.",
+    )
+    status.add_argument("--require-final-ready", action="store_true")
+
     retrieval_review_init = subparsers.add_parser(
         "retrieval-review-init",
         help="Create a pooled, system-blinded retrieval relevance review.",
@@ -757,6 +773,15 @@ def main(argv: Sequence[str] | None = None) -> None:
         report = reproduce_project(
             args.config,
             allow_incomplete=args.allow_incomplete,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.command == "status":
+        report = project_status(
+            args.config,
+            args.output,
+            require_final_ready=args.require_final_ready,
         )
         print(json.dumps(report, indent=2, sort_keys=True))
         return
