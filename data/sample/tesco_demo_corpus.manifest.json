@@ -1,0 +1,27 @@
+{
+  "demo_corpus_schema_version": 1,
+  "examples_per_intent": 12,
+  "intent_counts": {
+    "delivery_or_collection": 12,
+    "feedback_praise_or_suggestion": 12,
+    "online_account_or_checkout": 12,
+    "other_or_unclear": 12,
+    "pricing_promotion_or_clubcard": 12,
+    "product_availability": 12,
+    "product_information": 12,
+    "product_quality_or_safety": 12,
+    "refund_return_or_exchange": 12,
+    "store_or_staff_experience": 12
+  },
+  "output_file": "tesco_demo_corpus.csv",
+  "output_row_count": 120,
+  "output_sha256": "c2efd249e76ad8bd04f5dc3d19875378e92293035f3ec66345f08e469d49cc71",
+  "selection_method": "sha256_rank_within_deterministic_baseline_intent",
+  "selection_seed": 20260914,
+  "selection_uses_outcome_fields": false,
+  "source_file": "tesco_cases.csv",
+  "source_row_count": 25284,
+  "source_sha256": "dce80d676b7a1979b5a8454b24ef86d5be12c2fbbad26a2ef497b627e65481bb",
+  "source_split": "train",
+  "source_train_row_count": 17345
+}

@@ -16,9 +16,12 @@ Every compared system ultimately emits the same validated schema.
 
 ## Draft providers
 
-`guarded_template_v1` is the offline fallback. It uses the deterministic intent
-heuristic, outcome-aware evidence pack, intent-specific acknowledgement, and
-policy gate. It is deliberately conservative and is not presented as the final
+`guarded_template_v1` is the offline fallback. It exercises deterministic intent
+classification, outcome-aware retrieval, an intent-specific acknowledgement,
+and the policy gate. The acknowledgement does not consume precedent text, so
+its per-row `evidence_case_ids` correctly remain empty. A demo trace may display
+the separately named retrieved pack, with every `used_by_drafter` value false.
+The fallback is deliberately conservative and is not presented as a grounded
 LLM result.
 
 `OpenAIDrafter` is the structured generation path. It:
@@ -61,6 +64,26 @@ That absence is recorded rather than replaced with invented model output.
 Before the 200-case paid run, `tescogpt api-smoke` exercises one frozen case
 through retrieval, generation, and the policy gate; its response is retained in
 the same cache and reused by the full batch.
+
+## Clone-and-run demo
+
+`tescogpt demo` accepts one new message and prints its validated output plus the
+complete retrieved pack. The default tracked corpus contains 12 deterministic
+training examples per baseline intent. Selection is based only on seeded hashes
+and deterministic intent strata; it never uses outcome fields to cherry-pick
+apparently successful conversations. Its manifest freezes the full source hash,
+output hash, split, method, seed, counts, and explicit
+`selection_uses_outcome_fields: false` declaration.
+
+```bash
+python -m tescogpt demo \
+  --message "I found a piece of glass in a jar I bought today"
+```
+
+This demonstrates execution and inspectability, not accuracy. The small corpus
+reduces retrieval recall, the fallback reply is generic, and the 2014–2017
+precedents are not current policy. `main-openai` can be selected with an explicit
+model ID, but only frozen 200-case predictions enter the final evaluation.
 
 ## Non-bypassable policy
 

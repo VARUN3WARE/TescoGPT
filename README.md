@@ -142,6 +142,33 @@ An API-backed drafter is optional and requires an explicit model ID; the
 committed guarded-template output keeps development and offline verification
 runnable without a secret. See [the architecture and trust boundaries](docs/AGENT.md).
 
+### Try the policy path in 30 seconds
+
+A fresh clone includes a 120-row, training-only mini-corpus so a reviewer can
+send a new message through retrieval, intent classification, drafting, and the
+non-bypassable handling gate without downloading the 3M-row dataset or using an
+API key:
+
+```bash
+python -m pip install -e .
+python -m tescogpt demo \
+  --message "I found a piece of glass in a jar I bought today"
+```
+
+The JSON shows the proposed and public drafts, `ESCALATE` reason, safety flags,
+and the full historical retrieval pack. It distinguishes precedents retrieved
+from those actually used by the drafter. The default offline template does not
+claim to use precedent wording; it exists to make policy behavior inspectable.
+After installing `.[llm]` and setting `OPENAI_API_KEY`, add `--system
+main-openai --model YOUR_EXPLICIT_MODEL_ID` to exercise grounded structured
+generation over the same pack.
+
+The mini-corpus is not evaluation data or performance evidence. It is selected
+outcome-blind by seeded SHA-256 rank within the ten deterministic baseline
+intent strata, contains 12 examples per stratum, and includes only training
+conversations. `python -m tescogpt demo-corpus` reproduces it from the ignored
+full case table; its source and output hashes are frozen beside the CSV.
+
 ## Reproducibility contract
 
 The reproduction path reads committed labels and predictions; it does not need

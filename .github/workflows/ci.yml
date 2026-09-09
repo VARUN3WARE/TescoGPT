@@ -43,6 +43,12 @@ jobs:
       - name: Test
         run: python -m pytest
 
+      - name: Verify clone-and-run agent demo
+        run: >-
+          python -m tescogpt demo
+          --message "I found a piece of glass in a jar I bought today"
+          > /dev/null
+
       - name: Verify committed evidence
         run: python -m tescogpt reproduce --allow-incomplete
 

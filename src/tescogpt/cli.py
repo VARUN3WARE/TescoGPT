@@ -8,8 +8,10 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from tescogpt.data.audit import audit_conversations
+from tescogpt.data.demo import build_demo_corpus
 from tescogpt.data.taxonomy_audit import audit_taxonomy_themes
 from tescogpt.data.threads import extract_brand_conversations
+from tescogpt.demo import run_demo
 from tescogpt.evaluation.adjudication import (
     finalize_adjudication,
     initialize_adjudication,
@@ -161,6 +163,28 @@ def _build_parser() -> argparse.ArgumentParser:
     sample.add_argument("--natural-count", type=int, default=150)
     sample.add_argument("--challenge-count", type=int, default=50)
     sample.add_argument("--seed", type=int, default=20260909)
+
+    demo_corpus = subparsers.add_parser(
+        "demo-corpus",
+        help="Rebuild the tracked training-only mini-corpus used by the agent demo.",
+    )
+    demo_corpus.add_argument(
+        "--input",
+        type=Path,
+        default=Path("data/processed/tesco_cases.csv"),
+    )
+    demo_corpus.add_argument(
+        "--output",
+        type=Path,
+        default=Path("data/sample/tesco_demo_corpus.csv"),
+    )
+    demo_corpus.add_argument(
+        "--manifest",
+        type=Path,
+        default=Path("data/sample/tesco_demo_corpus.manifest.json"),
+    )
+    demo_corpus.add_argument("--examples-per-intent", type=int, default=12)
+    demo_corpus.add_argument("--seed", type=int, default=20260914)
 
     labels_check = subparsers.add_parser(
         "labels-check",
@@ -323,6 +347,44 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Explicit Responses API model ID; required only for main-openai.",
     )
     predict.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=Path("artifacts/cache/openai_drafts"),
+    )
+
+    demo = subparsers.add_parser(
+        "demo",
+        help="Run one new message through the agent and print its complete evidence trace.",
+    )
+    demo.add_argument("--message", required=True, help="Incoming public customer message.")
+    demo.add_argument("--prior-context", default="", help="Optional earlier thread text.")
+    demo.add_argument(
+        "--system",
+        choices=("main-template", "main-openai"),
+        default="main-template",
+    )
+    demo.add_argument(
+        "--corpus",
+        type=Path,
+        default=Path("data/sample/tesco_demo_corpus.csv"),
+    )
+    demo.add_argument(
+        "--corpus-manifest",
+        type=Path,
+        default=Path("data/sample/tesco_demo_corpus.manifest.json"),
+        help="Frozen mini-corpus manifest; validated before the demo runs.",
+    )
+    demo.add_argument(
+        "--skip-corpus-verification",
+        action="store_true",
+        help="Allow a custom corpus without the tracked mini-corpus manifest.",
+    )
+    demo.add_argument(
+        "--model",
+        default=None,
+        help="Explicit Responses API model ID; required only for main-openai.",
+    )
+    demo.add_argument(
         "--cache-dir",
         type=Path,
         default=Path("artifacts/cache/openai_drafts"),
@@ -692,6 +754,17 @@ def main(argv: Sequence[str] | None = None) -> None:
         print(json.dumps(manifest, indent=2, sort_keys=True))
         return
 
+    if args.command == "demo-corpus":
+        manifest = build_demo_corpus(
+            source_path=args.input,
+            output_path=args.output,
+            manifest_path=args.manifest,
+            examples_per_intent=args.examples_per_intent,
+            seed=args.seed,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
     if args.command == "labels-check":
         progress = validate_annotations(args.input, require_complete=args.require_complete)
         print(json.dumps(progress, indent=2, sort_keys=True))
@@ -771,6 +844,21 @@ def main(argv: Sequence[str] | None = None) -> None:
             cache_dir=args.cache_dir,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "demo":
+        result = run_demo(
+            message=args.message,
+            prior_context=args.prior_context,
+            system=args.system,
+            corpus_path=args.corpus,
+            corpus_manifest_path=(
+                None if args.skip_corpus_verification else args.corpus_manifest
+            ),
+            model=args.model,
+            cache_dir=args.cache_dir,
+        )
+        print(json.dumps(result, indent=2, ensure_ascii=False, sort_keys=True))
         return
 
     if args.command == "api-smoke":
