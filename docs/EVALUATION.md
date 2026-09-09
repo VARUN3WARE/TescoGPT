@@ -107,3 +107,5 @@ within-one agreement, and quadratic-weighted kappa for every reply dimension,
 plus overall-pass kappa and pairwise repeatability across judge runs. Agreement
 and repeatability exclude the decoys so easy controls cannot inflate validity;
 decoy fail and critical-error-detection rates are reported separately.
+Each judge CSV and adjacent manifest must also match the frozen human-review
+hash, exact row IDs, explicit model ID, replicate number, and per-row pass rule.

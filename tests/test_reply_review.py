@@ -16,6 +16,7 @@ from tescogpt.evaluation.judge import (
     JudgeRating,
     OpenAIReplyJudge,
     judge_human_agreement,
+    validate_judge_output,
 )
 from tescogpt.evaluation.labels import LABEL_COLUMNS
 from tescogpt.evaluation.reply_review import (
@@ -305,6 +306,8 @@ def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> N
                 "critical_error_tags": critical_tags,
                 "overall_pass": "PASS" if score == 2 else "FAIL",
                 "rationale": "rated",
+                "judge_model": "judge-test",
+                "replicate": 1,
             }
         )
         key_rows.append(
@@ -341,3 +344,42 @@ def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> N
         ]
         == 1
     )
+
+
+def test_judge_output_validator_rejects_changed_provenance(tmp_path: Path) -> None:
+    review_path = tmp_path / "review.csv"
+    judge_path = tmp_path / "judge.csv"
+    manifest_path = tmp_path / "judge.csv.manifest.json"
+    pd.DataFrame([{"review_id": "r1"}]).to_csv(review_path, index=False)
+    pd.DataFrame(
+        [
+            {
+                "review_id": "r1",
+                **{dimension: 2 for dimension in RATING_DIMENSIONS},
+                "critical_error_tags": "",
+                "overall_pass": "PASS",
+                "rationale": "Acceptable.",
+                "judge_model": "judge-test",
+                "replicate": 1,
+            }
+        ]
+    ).to_csv(judge_path, index=False)
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "output_sha256": "wrong",
+                "review_sha256": "wrong",
+                "model": "judge-test",
+                "replicate": 1,
+                "row_count": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="output hash"):
+        validate_judge_output(
+            judge_path,
+            review_path=review_path,
+            manifest_path=manifest_path,
+        )

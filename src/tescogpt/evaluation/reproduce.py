@@ -11,7 +11,7 @@ from typing import Any
 import pandas as pd
 
 from tescogpt.evaluation.agreement import annotation_agreement
-from tescogpt.evaluation.judge import judge_human_agreement
+from tescogpt.evaluation.judge import judge_human_agreement, validate_judge_output
 from tescogpt.evaluation.labels import validate_annotations
 from tescogpt.evaluation.metrics import evaluate_predictions
 from tescogpt.evaluation.reply_review import evaluate_reply_quality, validate_reply_ratings
@@ -182,6 +182,21 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
             reply_review_path,
             require_complete=reply_manifest.get("label_status") == "HUMAN_RATED",
         )
+
+    judge_outputs = config.get("judge_output_files", [])
+    if judge_outputs:
+        if not reply_review_value:
+            raise ValueError("Judge outputs require a configured human reply review")
+        for judge_value in judge_outputs:
+            judge_path = _resolve(root, judge_value)
+            judge_manifest_path = judge_path.with_suffix(
+                judge_path.suffix + ".manifest.json"
+            )
+            validate_judge_output(
+                judge_path,
+                review_path=_resolve(root, reply_review_value),
+                manifest_path=judge_manifest_path,
+            )
     return checks
 
 

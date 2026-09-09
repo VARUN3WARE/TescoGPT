@@ -76,7 +76,9 @@ The two slices will be reported separately. A stratified 60-example subset has
 been frozen for a second independent human annotation. Both annotation sheets
 hide later Tesco responses, slice membership, and challenge-selection flags.
 The automated reply judge will be compared with humans per rubric dimension and
-will not become the headline if agreement is weak.
+will not become the headline if agreement is weak. Judge runs are immutable
+per-example artifacts with model, replicate, input hash, and output hash—not
+copied aggregate numbers.
 
 The ten-intent taxonomy, routing criteria, tie-breaks, and safety reason codes
 are defined in the [annotation guide](docs/ANNOTATION_GUIDE.md). The sampling

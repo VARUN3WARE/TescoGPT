@@ -89,6 +89,11 @@ Report decoy fail rate, critical-error-detection rate, privacy/safety score, and
 routing-fit score separately. Otherwise easy decoys could make an unreliable
 judge appear more human-aligned.
 
+Every judge run keeps its explicit model ID and replicate number in each row and
+an adjacent manifest. Validation rejects unknown scores or tags, inconsistent
+pass values, duplicate or missing review IDs, mixed models/replicates, changed
+review content, and output hashes that differ from the manifest.
+
 The judge is advisory. Human reply pass rate remains the quality headline if
 judge agreement is inadequate.
 
@@ -114,6 +119,7 @@ python -m tescogpt reply-evaluate \
   --manifest data/review/reply_review.manifest.json \
   --reference-system YOUR_FROZEN_MAIN_SYSTEM_ID
 python -m tescogpt judge-review --review data/review/reply_review.csv \
+  --review-manifest data/review/reply_review.manifest.json \
   --output outputs/evaluation/judge_run_1.csv \
   --model YOUR_EXPLICIT_JUDGE_MODEL_ID --replicate 1
 python -m tescogpt judge-agreement \

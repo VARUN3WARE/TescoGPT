@@ -112,6 +112,15 @@ _JUDGE_INPUT_COLUMNS = (
     "proposed_reason",
     "evidence_quotes",
 )
+JUDGE_OUTPUT_COLUMNS = (
+    "review_id",
+    *RATING_DIMENSIONS,
+    "critical_error_tags",
+    "overall_pass",
+    "rationale",
+    "judge_model",
+    "replicate",
+)
 
 
 def _sha256(path: Path, block_size: int = 1024 * 1024) -> str:
@@ -226,10 +235,19 @@ def judge_review_sheet(
     model: str,
     cache_dir: str | Path,
     replicate: int = 1,
+    review_manifest_path: str | Path | None = None,
     client: Any | None = None,
 ) -> dict[str, Any]:
     """Judge every blinded row without reading any human rating columns."""
-    validate_reply_ratings(review_path)
+    validate_reply_ratings(review_path, require_complete=True)
+    if review_manifest_path is not None:
+        review_manifest = json.loads(
+            Path(review_manifest_path).read_text(encoding="utf-8")
+        )
+        if review_manifest.get("label_status") != "HUMAN_RATED":
+            raise ValueError("Human reply ratings must be frozen before judge execution")
+        if review_manifest.get("review_sha256") != _sha256(Path(review_path)):
+            raise ValueError("Judge input differs from the frozen human review")
     review = pd.read_csv(review_path, dtype="string", keep_default_na=False)
     judge = OpenAIReplyJudge(
         model,
@@ -255,6 +273,7 @@ def judge_review_sheet(
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     output.to_csv(destination, index=False, lineterminator="\n")
+    validate_judge_output(destination, review_path=review_path)
     manifest = {
         "judge_output_schema_version": 1,
         "review_file": Path(review_path).name,
@@ -272,6 +291,64 @@ def judge_review_sheet(
         newline="\n",
     )
     return manifest
+
+
+def validate_judge_output(
+    path: str | Path,
+    *,
+    review_path: str | Path | None = None,
+    manifest_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Validate one per-example judge artifact and its provenance."""
+    source = Path(path)
+    judge = pd.read_csv(source, dtype="string", keep_default_na=False)
+    missing = sorted(set(JUDGE_OUTPUT_COLUMNS) - set(judge.columns))
+    if missing:
+        raise ValueError(f"Judge output is missing columns: {', '.join(missing)}")
+    if judge["review_id"].duplicated().any():
+        raise ValueError("Judge output contains duplicate review IDs")
+    models = sorted(set(judge["judge_model"].str.strip()))
+    if len(models) != 1 or not models[0]:
+        raise ValueError("Judge output must contain one non-empty model ID")
+    replicates = pd.to_numeric(judge["replicate"], errors="raise")
+    if (replicates.le(0) | (replicates % 1).ne(0)).any() or replicates.nunique() != 1:
+        raise ValueError("Judge output must contain one positive integer replicate")
+    for row in judge.to_dict(orient="records"):
+        JudgeRating(
+            **{dimension: int(row[dimension]) for dimension in RATING_DIMENSIONS},
+            critical_error_tags=tuple(
+                tag.strip()
+                for tag in str(row["critical_error_tags"]).split(";")
+                if tag.strip()
+            ),
+            overall_pass=str(row["overall_pass"]),
+            rationale=str(row["rationale"]),
+        )
+    review_hash = None
+    if review_path is not None:
+        review = pd.read_csv(review_path, dtype="string", keep_default_na=False)
+        if set(judge["review_id"]) != set(review["review_id"]):
+            raise ValueError("Judge IDs do not exactly match the human review")
+        review_hash = _sha256(Path(review_path))
+    if manifest_path is not None:
+        manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+        if manifest.get("output_sha256") != _sha256(source):
+            raise ValueError("Judge output hash differs from its manifest")
+        if review_hash is not None and manifest.get("review_sha256") != review_hash:
+            raise ValueError("Judge manifest points to a different human review")
+        if manifest.get("model") != models[0]:
+            raise ValueError("Judge model differs from its manifest")
+        if int(manifest.get("replicate", 0)) != int(replicates.iloc[0]):
+            raise ValueError("Judge replicate differs from its manifest")
+        if int(manifest.get("row_count", -1)) != len(judge):
+            raise ValueError("Judge row count differs from its manifest")
+    return {
+        "file": source.name,
+        "row_count": len(judge),
+        "model": models[0],
+        "replicate": int(replicates.iloc[0]),
+        "output_sha256": _sha256(source),
+    }
 
 
 def judge_human_agreement(
@@ -297,13 +374,19 @@ def judge_human_agreement(
     judge_frames: dict[str, pd.DataFrame] = {}
     comparisons: dict[str, Any] = {}
     decoy_controls: dict[str, Any] = {}
+    used_names: set[str] = set()
     for path_value in judge_paths:
         path = Path(path_value)
+        if path.name in used_names:
+            raise ValueError(f"Judge output filenames must be unique: {path.name}")
+        used_names.add(path.name)
+        manifest_path = path.with_suffix(path.suffix + ".manifest.json")
+        validate_judge_output(
+            path,
+            review_path=human_review_path,
+            manifest_path=manifest_path if manifest_path.is_file() else None,
+        )
         judge = pd.read_csv(path, dtype="string", keep_default_na=False)
-        if judge["review_id"].duplicated().any():
-            raise ValueError(f"Duplicate judge review IDs in {path}")
-        if set(judge["review_id"]) != set(human["review_id"]):
-            raise ValueError(f"Judge IDs do not exactly match human review: {path}")
         merged = agreement_human.merge(
             judge,
             on="review_id",

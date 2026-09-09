@@ -349,6 +349,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Run a structured LLM judge over a blinded review packet.",
     )
     judge_review.add_argument("--review", type=Path, required=True)
+    judge_review.add_argument("--review-manifest", type=Path)
     judge_review.add_argument("--output", type=Path, required=True)
     judge_review.add_argument("--model", required=True)
     judge_review.add_argument(
@@ -614,6 +615,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             model=args.model,
             cache_dir=args.cache_dir,
             replicate=args.replicate,
+            review_manifest_path=args.review_manifest,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
         return
