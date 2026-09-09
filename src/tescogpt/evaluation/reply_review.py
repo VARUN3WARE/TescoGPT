@@ -494,6 +494,18 @@ def validate_reply_ratings(
         inconsistent = expected_pass.ne(actual_pass)
         if inconsistent.any():
             problems.append(f"{int(inconsistent.sum())} rows violate the overall-pass rule")
+        needs_notes = (
+            completed_rows.loc[:, list(RATING_DIMENSIONS)].eq("0").any(axis=1)
+            | completed_rows["critical_error_tags"].str.strip().ne("")
+        )
+        missing_notes = needs_notes & completed_rows["review_notes"].str.strip().eq("")
+        if missing_notes.any():
+            problems.append(
+                f"{int(missing_notes.sum())} failed review rows lack explanatory notes"
+            )
+    reviewer_ids = sorted(set(reviewers.loc[reviewers.ne("")]))
+    if require_complete and len(reviewer_ids) != 1:
+        problems.append("a completed reply review must use exactly one reviewer ID")
     if problems:
         raise ValueError("; ".join(problems))
     return {
@@ -502,7 +514,7 @@ def validate_reply_ratings(
         "completed_count": int(completed.sum()),
         "remaining_count": int((~completed).sum()),
         "is_complete": bool(completed.all()),
-        "reviewer_ids": sorted(set(reviewers.loc[reviewers.ne("")])),
+        "reviewer_ids": reviewer_ids,
     }
 
 

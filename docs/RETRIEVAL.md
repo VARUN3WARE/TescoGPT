@@ -67,8 +67,9 @@ For each query-candidate pair, assign one grade:
 
 Judge usefulness as historical evidence, not fluency or whether old Tesco text
 can be copied verbatim today. Fill `reviewer_id` on every row and use
-`relevance_reason` for borderline grades. Do not open the identity key until the
-review file has been completed and frozen.
+`relevance_reason` for every borderline (`1`) grade. Use one stable reviewer ID
+for the entire packet. The completion validator enforces both requirements. Do
+not open the identity key until the review file has been completed and frozen.
 
 The evaluator reports macro-averaged pooled Precision@3 (grades 1 or 2 count as
 relevant), pooled nDCG@3 (graded relevance), and per-query win/tie/loss for

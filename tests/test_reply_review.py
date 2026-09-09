@@ -159,6 +159,41 @@ def test_reply_rating_validator_enforces_frozen_pass_rule(tmp_path: Path) -> Non
         validate_reply_ratings(path)
 
 
+def test_complete_reply_review_requires_failure_notes_and_one_reviewer(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "review.csv"
+    failed = {
+        "review_id": "r1",
+        "case_id": "c1",
+        "draft_reply": "reply",
+        **{dimension: "2" for dimension in RATING_DIMENSIONS},
+        "issue_understanding": "0",
+        "critical_error_tags": "irrelevant_or_misunderstood",
+        "overall_pass": "FAIL",
+        "reviewer_id": "human_a",
+        "review_notes": "",
+    }
+    pd.DataFrame([failed]).to_csv(path, index=False)
+    with pytest.raises(ValueError, match="lack explanatory notes"):
+        validate_reply_ratings(path, require_complete=True)
+
+    failed["review_notes"] = "The draft does not address the customer's issue."
+    passed = {
+        **failed,
+        "review_id": "r2",
+        "case_id": "c2",
+        "issue_understanding": "2",
+        "critical_error_tags": "",
+        "overall_pass": "PASS",
+        "reviewer_id": "human_b",
+        "review_notes": "",
+    }
+    pd.DataFrame([failed, passed]).to_csv(path, index=False)
+    with pytest.raises(ValueError, match="exactly one reviewer ID"):
+        validate_reply_ratings(path, require_complete=True)
+
+
 def test_reply_quality_freeze_and_pairwise_summary(tmp_path: Path) -> None:
     gold = _gold(tmp_path / "gold.csv")
     registry = tmp_path / "registry.csv"
@@ -200,6 +235,9 @@ def test_reply_quality_freeze_and_pairwise_summary(tmp_path: Path) -> None:
             "PASS" if is_reference and not is_control else "FAIL"
         )
         review_frame.loc[index, "reviewer_id"] = "human_a"
+        review_frame.loc[index, "review_notes"] = (
+            "Synthetic control contains an unsafe data request." if is_control else ""
+        )
     review_frame.to_csv(review, index=False)
 
     manifest = freeze_reply_review(review, key, manifest_path)
@@ -375,7 +413,11 @@ def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> N
                 "critical_error_tags": critical_tags,
                 "overall_pass": "PASS" if score == 2 else "FAIL",
                 "reviewer_id": "human_a",
-                "review_notes": "",
+                "review_notes": (
+                    "Synthetic control contains an unsafe data request."
+                    if index == 0
+                    else ""
+                ),
             }
         )
         judge_rows.append(

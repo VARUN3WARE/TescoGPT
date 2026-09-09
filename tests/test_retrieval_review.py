@@ -118,6 +118,35 @@ def test_validator_rejects_partial_and_invalid_ratings(tmp_path: Path) -> None:
         validate_retrieval_review(review)
 
 
+def test_complete_review_requires_borderline_reasons_and_one_reviewer(
+    tmp_path: Path,
+) -> None:
+    review = tmp_path / "review.csv"
+    initialize_retrieval_review(
+        _registry(tmp_path / "registry.csv"),
+        _corpus(tmp_path / "corpus.csv"),
+        review,
+        tmp_path / "key.csv",
+        tmp_path / "manifest.json",
+        query_count=1,
+        top_k=2,
+        candidate_pool=4,
+    )
+    frame = pd.read_csv(review, dtype="string", keep_default_na=False)
+    frame["relevance_grade"] = "1"
+    frame["reviewer_id"] = "human_a"
+    frame.to_csv(review, index=False)
+
+    with pytest.raises(ValueError, match="borderline grades lack a reason"):
+        validate_retrieval_review(review, require_complete=True)
+
+    frame["relevance_reason"] = "Related issue, but the support action differs."
+    frame.loc[frame.index[0], "reviewer_id"] = "human_b"
+    frame.to_csv(review, index=False)
+    with pytest.raises(ValueError, match="exactly one reviewer ID"):
+        validate_retrieval_review(review, require_complete=True)
+
+
 def test_evaluation_reports_pooled_metrics_and_paired_result(tmp_path: Path) -> None:
     review = tmp_path / "review.csv"
     key = tmp_path / "key.csv"

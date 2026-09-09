@@ -97,6 +97,14 @@ def validate_retrieval_review(
         problems.append(f"{int(partial.sum())} partially completed rows")
     if require_complete and not completed.all():
         problems.append(f"{int((~completed).sum())} rows are not complete")
+    borderline_without_reason = completed & grades.eq("1") & reasons.eq("")
+    if borderline_without_reason.any():
+        problems.append(
+            f"{int(borderline_without_reason.sum())} borderline grades lack a reason"
+        )
+    reviewer_ids = sorted(set(reviewers.loc[reviewers.ne("")]))
+    if require_complete and len(reviewer_ids) != 1:
+        problems.append("a completed retrieval review must use exactly one reviewer ID")
     if problems:
         raise ValueError("; ".join(problems))
     return {
@@ -106,7 +114,7 @@ def validate_retrieval_review(
         "completed_count": int(completed.sum()),
         "remaining_count": int((~completed).sum()),
         "is_complete": bool(completed.all()),
-        "reviewer_ids": sorted(set(reviewers.loc[reviewers.ne("")])),
+        "reviewer_ids": reviewer_ids,
     }
 
 

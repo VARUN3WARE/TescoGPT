@@ -49,9 +49,9 @@ at round one so agreement remains independent.
 
 ## 3. Complete the blinded retrieval review
 
-The reviewer fills only `relevance_grade`, `reviewer_id`, and optional notes in
-the review workbook, exports its review sheet as CSV UTF-8, and does not inspect
-the identity key.
+One reviewer fills `relevance_grade`, one stable `reviewer_id`, and a reason for
+every borderline (`1`) judgment in the review workbook, exports its review
+sheet as CSV UTF-8, and does not inspect the identity key.
 
 ```bash
 python -m tescogpt retrieval-review-check \
@@ -83,8 +83,9 @@ Replace `main_template.csv` in `prediction_files` with `main_openai.csv`, and se
 ## 5. Rate replies before running the judge
 
 Create the system-blinded packet from the final gold file and all three frozen
-systems. A human rates every row using `docs/JUDGE_RUBRIC.md`; freeze those
-ratings before any judge call.
+systems. One human rates every row with a stable reviewer ID using
+`docs/JUDGE_RUBRIC.md` and adds a note for every zero or critical-error tag;
+freeze those ratings before any judge call.
 
 ```bash
 python -m tescogpt reply-review-init \
