@@ -8,6 +8,11 @@ dataset.
 > candidate set is frozen but explicitly `UNLABELED`; no headline result is
 > claimed until genuine human labels and the complete evaluation are available.
 
+The concise [assignment report](REPORT.md) already contains the final framing,
+method, evaluation protocol, mandatory misleading-number discussion, and
+traceable preliminary failures. Human-dependent result sections remain clearly
+marked pending.
+
 ## The question this project answers
 
 **How much public support traffic can the agent handle automatically while
