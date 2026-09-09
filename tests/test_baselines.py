@@ -6,8 +6,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from tescogpt.agent.intent import classify_intent
 from tescogpt.agent.schema import AgentOutput
-from tescogpt.baselines.simple import SimpleBaseline, classify_intent
+from tescogpt.baselines.simple import SimpleBaseline
 from tescogpt.baselines.trivial import TrivialBaseline
 from tescogpt.prediction import run_predictions
 from tescogpt.retrieval.bm25 import BM25Index

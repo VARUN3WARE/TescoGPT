@@ -149,7 +149,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "predict",
         help="Run a baseline over a case sheet using the shared output contract.",
     )
-    predict.add_argument("--system", choices=("trivial", "simple"), required=True)
+    predict.add_argument(
+        "--system",
+        choices=("trivial", "simple", "main-template", "main-openai"),
+        required=True,
+    )
     predict.add_argument(
         "--input",
         type=Path,
@@ -162,6 +166,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Historical case corpus; required by the simple baseline.",
     )
     predict.add_argument("--output", type=Path, required=True)
+    predict.add_argument(
+        "--model",
+        default=None,
+        help="Explicit Responses API model ID; required only for main-openai.",
+    )
+    predict.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=Path("artifacts/cache/openai_drafts"),
+    )
 
     retrieve = subparsers.add_parser(
         "retrieve",
@@ -249,7 +263,9 @@ def main(argv: Sequence[str] | None = None) -> None:
             system=args.system,
             input_path=args.input,
             output_path=args.output,
-            corpus_path=args.corpus if args.system == "simple" else None,
+            corpus_path=args.corpus if args.system != "trivial" else None,
+            model=args.model,
+            cache_dir=args.cache_dir,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
         return

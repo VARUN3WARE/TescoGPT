@@ -2,8 +2,9 @@
 
 Both baselines implement the same validated output contract that the final agent
 must use: one intent, confidence, public draft, handling decision, reason code,
-safety flags, and zero or more evidence case IDs and quotes. They are frozen
-before the main system is evaluated.
+automation ranking score, safety flags, and zero or more evidence case IDs,
+quotes, and retrieval scores. They are frozen before the main system is
+evaluated.
 
 ## Trivial constant baseline
 

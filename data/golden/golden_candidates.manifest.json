@@ -40,7 +40,7 @@
     "train_fraction": 0.7
   },
   "codebook_file": "ANNOTATION_GUIDE.md",
-  "codebook_sha256": "6040cde0f7eafb2e29c65106e8ce3db61fbf75c55a6e762ee220cc3b885de3e7",
+  "codebook_sha256": "04fdc6a264f234447da029148b15a5d70134d74d1c817e3586a477d4118f197b",
   "eligible_case_count": 25284,
   "eligible_test_case_count": 3892,
   "label_status": "UNLABELED",

@@ -2,94 +2,15 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from typing import Any
 
 import pandas as pd
 
+from tescogpt.agent.intent import classify_intent
 from tescogpt.agent.schema import AgentOutput
 from tescogpt.data.cases import challenge_flags
 from tescogpt.retrieval.bm25 import BM25Index
-
-_INTENT_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    (
-        "product_quality_or_safety",
-        re.compile(
-            r"\b(?:allerg|anaphyla|mould|mold|rotten|raw|poison|contaminat|glass|"
-            r"foreign object|expired|out of date|injur|hurt|sick|ill|quality|damaged)\w*\b",
-            re.I,
-        ),
-    ),
-    (
-        "delivery_or_collection",
-        re.compile(
-            r"\b(?:deliver|driver|order|slot|substitut|missing (?:bag|item)|"
-            r"click\s*(?:&|and)\s*collect)\w*\b",
-            re.I,
-        ),
-    ),
-    (
-        "online_account_or_checkout",
-        re.compile(
-            r"\b(?:login|log in|password|account|website|app|basket|checkout|"
-            r"payment (?:fail|error))\w*\b",
-            re.I,
-        ),
-    ),
-    (
-        "store_or_staff_experience",
-        re.compile(
-            r"\b(?:staff|manager|cashier|queue|store|shop|toilet|trolley|parking|"
-            r"opening hours?|customer service)\w*\b",
-            re.I,
-        ),
-    ),
-    (
-        "pricing_promotion_or_clubcard",
-        re.compile(
-            r"\b(?:clubcard|price|offer|discount|coupon|voucher|points?|promotion|"
-            r"overcharg|gift card)\w*\b|[£$€]",
-            re.I,
-        ),
-    ),
-    (
-        "refund_return_or_exchange",
-        re.compile(r"\b(?:refund|return|exchange|replacement|money back)\w*\b", re.I),
-    ),
-    (
-        "product_availability",
-        re.compile(
-            r"\b(?:stock|sell|sold out|available|availability|discontinued|"
-            r"bring back|find this)\w*\b",
-            re.I,
-        ),
-    ),
-    (
-        "product_information",
-        re.compile(
-            r"\b(?:ingredient|nutrition|calorie|vegan|vegetarian|gluten|allergen|contain|cook|suitable|packag|source)\w*\b",
-            re.I,
-        ),
-    ),
-    (
-        "feedback_praise_or_suggestion",
-        re.compile(
-            r"\b(?:thank|thanks|brilliant|great service|well done|love|suggestion|feedback)\w*\b",
-            re.I,
-        ),
-    ),
-)
-
-
-def classify_intent(text: str) -> tuple[str, float]:
-    """Return the first matching taxonomy intent using codebook priority."""
-    for intent, pattern in _INTENT_PATTERNS:
-        matches = pattern.findall(text)
-        if matches:
-            confidence = min(0.55 + 0.08 * len(matches), 0.87)
-            return intent, confidence
-    return "other_or_unclear", 0.2
 
 
 def route_case(intent: str, text: str) -> tuple[str, str, tuple[str, ...]]:
@@ -128,6 +49,13 @@ class SimpleBaseline:
         query = f"{prior_context} {message}".strip()
         intent, confidence = classify_intent(query)
         handling, reason, flags = route_case(intent, query)
+        automation_score = {
+            "NO_ACTION_NEEDED": 0.80,
+            "SAFE_PUBLIC_GUIDANCE": 0.70,
+            "SAFE_CLARIFICATION": 0.65,
+            "CURRENT_POLICY_OR_LIVE_INFO": 0.20,
+            "OUT_OF_SCOPE_OR_UNCLEAR": 0.15,
+        }.get(reason, 0.05)
         results = self._index.search(
             query,
             top_k=1,
@@ -152,6 +80,7 @@ class SimpleBaseline:
             draft_reply=draft,
             handling_decision=handling,
             decision_reason=reason,
+            automation_score=automation_score,
             evidence_case_ids=evidence_ids,
             evidence_quotes=evidence_quotes,
             evidence_scores=evidence_scores,

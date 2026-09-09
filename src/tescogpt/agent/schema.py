@@ -24,6 +24,7 @@ class AgentOutput:
     draft_reply: str
     handling_decision: str
     decision_reason: str
+    automation_score: float = 0.0
     evidence_case_ids: tuple[str, ...] = field(default_factory=tuple)
     evidence_quotes: tuple[str, ...] = field(default_factory=tuple)
     evidence_scores: tuple[float, ...] = field(default_factory=tuple)
@@ -51,6 +52,8 @@ class AgentOutput:
             raise ValueError(
                 f"{self.handling_decision} is incompatible with {self.decision_reason}"
             )
+        if not 0 <= self.automation_score <= 1:
+            raise ValueError("automation_score must be between 0 and 1")
         if len(self.evidence_case_ids) != len(self.evidence_quotes):
             raise ValueError("Every evidence case ID must have one evidence quote")
         if len(self.evidence_case_ids) != len(self.evidence_scores):
@@ -66,6 +69,7 @@ class AgentOutput:
             "draft_reply": self.draft_reply,
             "handling_decision": self.handling_decision,
             "decision_reason": self.decision_reason,
+            "automation_score": round(float(self.automation_score), 6),
             "evidence_case_ids": json.dumps(self.evidence_case_ids),
             "evidence_quotes": json.dumps(self.evidence_quotes, ensure_ascii=False),
             "evidence_scores": json.dumps(

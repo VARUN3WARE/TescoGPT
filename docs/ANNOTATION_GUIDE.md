@@ -163,6 +163,9 @@ Choose `ESCALATE` whenever one of these is the primary reason:
   or another time-sensitive fact must be verified.
 - `REPEATED_FAILURE_OR_DISTRESS`: repeated failed contacts, severe frustration,
   threats, abuse, or a relationship-sensitive situation needs judgment.
+- `HUMAN_JUDGMENT_REQUIRED`: a subjective staff/service complaint, reputational
+  issue, or nuanced multi-intent case needs discretionary review even though the
+  request itself is understandable.
 - `OUT_OF_SCOPE_OR_UNCLEAR`: the system cannot confidently determine a safe action.
 
 When two escalation reasons apply, choose the one appearing first in the list

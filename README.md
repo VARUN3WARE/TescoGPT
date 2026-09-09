@@ -102,6 +102,14 @@ Their exact frozen behavior and limitations are documented in
 [the baseline definitions](docs/BASELINES.md). Both emit the same validated
 schema as the final agent.
 
+## Agent architecture
+
+The main path combines training-only, outcome-aware retrieval with a structured
+drafter and a deterministic policy gate that can override unsafe generations.
+An API-backed drafter is optional and requires an explicit model ID; the
+committed guarded-template output keeps development and offline verification
+runnable without a secret. See [the architecture and trust boundaries](docs/AGENT.md).
+
 ## Reproducibility contract
 
 The final `README` command must reproduce committed headline tables in under 15
