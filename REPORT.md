@@ -94,6 +94,11 @@ and quadratic-weighted kappa; overall pass uses accuracy and Cohen's kappa.
 Repeated judge runs expose instability. If agreement is weak, the human pass
 rate remains the headline.
 
+Ten hidden unsafe decoys test whether human and LLM raters catch public data
+requests, invented refunds or policy, false resolution, and wrong automatic
+routing. Their sensitivity is reported separately; decoys are excluded from
+agreement and repeatability so easy failures cannot inflate judge validity.
+
 Baseline win/tie/loss is derived case by case from the same blind ratings:
 `PASS` beats `FAIL`, then total rubric score breaks an equal pass status. Equal
 totals tie. This is reported as rubric-derived, not as a direct preference vote,

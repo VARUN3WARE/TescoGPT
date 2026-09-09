@@ -349,6 +349,7 @@ def reproduce_project(
             _resolve(root, human_review),
             [_resolve(root, value) for value in judge_outputs],
             _resolve(root, config["judge_agreement_output"]),
+            identity_key_path=_resolve(root, config["reply_review_key"]),
         )
         report["judge_comparison_count"] = len(judge_report["comparisons"])
     elif config["status"] == "FINAL":

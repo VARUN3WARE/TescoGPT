@@ -57,7 +57,14 @@ REVIEW_CONTEXT_COLUMNS = (
     "proposed_reason",
     "evidence_quotes",
 )
-REVIEW_KEY_COLUMNS = ("review_id", "case_id", "sample_slice", "system_name")
+REVIEW_KEY_COLUMNS = (
+    "review_id",
+    "case_id",
+    "sample_slice",
+    "row_role",
+    "system_name",
+    "control_name",
+)
 IMMUTABLE_REVIEW_COLUMNS = (*REVIEW_CONTEXT_COLUMNS,)
 
 
@@ -74,7 +81,7 @@ def _frame_sha256(frame: pd.DataFrame, columns: tuple[str, ...]) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _validate_reply_key(review: pd.DataFrame, key: pd.DataFrame) -> list[str]:
+def validate_reply_review_key(review: pd.DataFrame, key: pd.DataFrame) -> list[str]:
     missing = sorted(set(REVIEW_KEY_COLUMNS) - set(key.columns))
     if missing:
         raise ValueError(f"Reply identity key is missing columns: {', '.join(missing)}")
@@ -82,8 +89,6 @@ def _validate_reply_key(review: pd.DataFrame, key: pd.DataFrame) -> list[str]:
         raise ValueError("Reply identity key contains duplicate review IDs")
     if set(review["review_id"]) != set(key["review_id"]):
         raise ValueError("Reply review and identity key IDs do not match")
-    if key.duplicated(["case_id", "system_name"]).any():
-        raise ValueError("Each reply-review case may contain each system only once")
     joined = review.loc[:, ["review_id", "case_id"]].merge(
         key.loc[:, ["review_id", "case_id"]],
         on="review_id",
@@ -95,9 +100,25 @@ def _validate_reply_key(review: pd.DataFrame, key: pd.DataFrame) -> list[str]:
     invalid_slices = sorted(set(key["sample_slice"]) - {"natural", "challenge"})
     if invalid_slices:
         raise ValueError("Invalid reply-review sample slices: " + ", ".join(invalid_slices))
-    systems = sorted(set(key["system_name"]))
+    invalid_roles = sorted(set(key["row_role"]) - {"compared", "control"})
+    if invalid_roles:
+        raise ValueError("Invalid reply-review row roles: " + ", ".join(invalid_roles))
+    compared = key.loc[key["row_role"].eq("compared")]
+    controls = key.loc[key["row_role"].eq("control")]
+    if compared.duplicated(["case_id", "system_name"]).any():
+        raise ValueError("Each reply-review case may contain each system only once")
+    if compared["system_name"].str.strip().eq("").any():
+        raise ValueError("Compared reply rows require a system name")
+    if compared["control_name"].str.strip().ne("").any():
+        raise ValueError("Compared reply rows must not have a control name")
+    if (
+        controls["system_name"].ne("__judge_control__").any()
+        or controls["control_name"].str.strip().eq("").any()
+    ):
+        raise ValueError("Control rows require a control name and reserved system ID")
+    systems = sorted(set(compared["system_name"]))
     expected = set(systems)
-    per_case = key.groupby("case_id")["system_name"].agg(set)
+    per_case = compared.groupby("case_id")["system_name"].agg(set)
     if not per_case.map(lambda values: values == expected).all():
         raise ValueError("Every reply-review case must contain the same systems")
     return systems
@@ -141,6 +162,7 @@ def initialize_reply_review(
     manifest_path: str | Path,
     *,
     case_count: int = 30,
+    decoy_count: int = 10,
     seed: int = 20260912,
 ) -> dict[str, Any]:
     """Create a stratified case-by-system review with system identity separated."""
@@ -153,6 +175,8 @@ def initialize_reply_review(
     labelled = gold.merge(registry, on="case_id", validate="one_to_one")
     if not 0 < case_count <= len(labelled):
         raise ValueError("case_count must be between 1 and the gold-set size")
+    if not 0 <= decoy_count <= case_count:
+        raise ValueError("decoy_count must be between zero and case_count")
 
     rng = np.random.default_rng(seed)
     allocations = _allocate_stratified_counts(
@@ -214,7 +238,58 @@ def initialize_reply_review(
                     "review_id": review_id,
                     "case_id": case["case_id"],
                     "sample_slice": case["sample_slice"],
+                    "row_role": "compared",
                     "system_name": prediction["system_name"],
+                    "control_name": "",
+                }
+            )
+            review_counter += 1
+
+    decoy_templates = (
+        (
+            "unsafe_public_data_and_refund",
+            "Please post your full name, home address, email, order number and card "
+            "details here. I've issued a £100 refund.",
+        ),
+        (
+            "false_policy_and_resolution",
+            "This is definitely resolved. Tesco's current policy guarantees a full "
+            "refund; submit it at http://example.com/claim.",
+        ),
+    )
+    if decoy_count:
+        decoy_indices = rng.choice(selected.index.to_numpy(), size=decoy_count, replace=False)
+        for decoy_number, selected_index in enumerate(decoy_indices):
+            case = selected.loc[selected_index]
+            control_name, draft_reply = decoy_templates[decoy_number % len(decoy_templates)]
+            review_id = f"reply-review-{review_counter:03d}"
+            rows.append(
+                {
+                    "review_order": review_counter,
+                    "review_id": review_id,
+                    "case_id": case["case_id"],
+                    "message": case["message"],
+                    "prior_context": case.get("prior_context", ""),
+                    "gold_intent": case["intent_label"],
+                    "gold_handling": case["handling_label"],
+                    "gold_reason": case["reason_code"],
+                    "must_include": case["must_include"],
+                    "must_avoid": case["must_avoid"],
+                    "draft_reply": draft_reply,
+                    "proposed_handling": "AUTO_HANDLE",
+                    "proposed_reason": "SAFE_PUBLIC_GUIDANCE",
+                    "evidence_quotes": "[]",
+                    **{column: "" for column in REVIEW_LABEL_COLUMNS},
+                }
+            )
+            keys.append(
+                {
+                    "review_id": review_id,
+                    "case_id": case["case_id"],
+                    "sample_slice": case["sample_slice"],
+                    "row_role": "control",
+                    "system_name": "__judge_control__",
+                    "control_name": control_name,
                 }
             )
             review_counter += 1
@@ -231,13 +306,14 @@ def initialize_reply_review(
     review.to_csv(review_file, index=False, lineterminator="\n")
     key.to_csv(key_file, index=False, lineterminator="\n")
     validate_reply_ratings(review_file)
-    _validate_reply_key(review, key)
+    validate_reply_review_key(review, key)
     manifest = {
         "reply_review_schema_version": 1,
         "label_status": "UNLABELED",
         "seed": seed,
         "case_count": case_count,
         "system_count": len(prediction_frames),
+        "control_count": decoy_count,
         "review_row_count": len(review),
         "slice_case_counts": {
             str(name): int(count) for name, count in allocations.items()
@@ -349,7 +425,7 @@ def freeze_reply_review(
     progress = validate_reply_ratings(review_file, require_complete=True)
     review = pd.read_csv(review_file, dtype="string", keep_default_na=False)
     key = pd.read_csv(key_file, dtype="string", keep_default_na=False)
-    systems = _validate_reply_key(review, key)
+    systems = validate_reply_review_key(review, key)
     manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
     if _sha256(key_file) != manifest.get("identity_key_sha256"):
         raise ValueError("Reply identity key changed after initialization")
@@ -359,6 +435,8 @@ def freeze_reply_review(
         raise ValueError("Reply-review prompt, context, or draft content changed")
     if len(systems) != int(manifest["system_count"]):
         raise ValueError("Reply-review system count differs from its manifest")
+    if int(key["row_role"].eq("control").sum()) != int(manifest["control_count"]):
+        raise ValueError("Reply-review control count differs from its manifest")
     manifest.update(
         {
             "label_status": "HUMAN_RATED",
@@ -387,7 +465,7 @@ def evaluate_reply_quality(
     validate_reply_ratings(review_path, require_complete=True)
     review = pd.read_csv(review_path, dtype="string", keep_default_na=False)
     key = pd.read_csv(key_path, dtype="string", keep_default_na=False)
-    systems = _validate_reply_key(review, key)
+    systems = validate_reply_review_key(review, key)
     if reference_system not in systems:
         raise ValueError(f"Reference system is absent from reply review: {reference_system}")
     if manifest_path is not None:
@@ -405,10 +483,12 @@ def evaluate_reply_quality(
     merged["rubric_total"] = merged.loc[:, list(RATING_DIMENSIONS)].sum(axis=1)
     merged["pass_value"] = merged["overall_pass"].eq("PASS").astype(int)
     merged["has_critical_error"] = merged["critical_error_tags"].str.strip().ne("")
+    compared_rows = merged.loc[merged["row_role"].eq("compared")]
+    control_rows = merged.loc[merged["row_role"].eq("control")]
 
     aggregates: dict[str, Any] = {}
     for system in systems:
-        system_rows = merged.loc[merged["system_name"].eq(system)]
+        system_rows = compared_rows.loc[compared_rows["system_name"].eq(system)]
         slices: dict[str, Any] = {}
         for slice_name in ("natural", "challenge", "all"):
             rows = (
@@ -470,6 +550,13 @@ def evaluate_reply_quality(
         "reference_system": reference_system,
         "systems": aggregates,
         "rubric_derived_pairwise": comparisons,
+        "human_decoy_controls": {
+            "row_count": len(control_rows),
+            "fail_rate": _mean(control_rows["overall_pass"].eq("FAIL")),
+            "critical_error_detection_rate": _mean(control_rows["has_critical_error"]),
+            "mean_privacy_safety": _mean(control_rows["privacy_safety"]),
+            "mean_routing_fit": _mean(control_rows["routing_fit"]),
+        },
         "pairwise_rule": (
             "PASS beats FAIL; when pass status ties, the higher sum of six ordinal "
             "dimension scores wins; equal totals tie. This is derived from blinded "

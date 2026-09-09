@@ -312,6 +312,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--manifest", type=Path, default=Path("data/review/reply_review.manifest.json")
     )
     review_init.add_argument("--case-count", type=int, default=30)
+    review_init.add_argument("--decoy-count", type=int, default=10)
     review_init.add_argument("--seed", type=int, default=20260912)
 
     review_check = subparsers.add_parser(
@@ -362,6 +363,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Compare one or more judge runs with frozen human reply ratings.",
     )
     judge_agree.add_argument("--human-review", type=Path, required=True)
+    judge_agree.add_argument("--identity-key", type=Path)
     judge_agree.add_argument("--judge-outputs", type=Path, nargs="+", required=True)
     judge_agree.add_argument(
         "--output",
@@ -571,6 +573,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             key_path=args.identity_key,
             manifest_path=args.manifest,
             case_count=args.case_count,
+            decoy_count=args.decoy_count,
             seed=args.seed,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
@@ -620,6 +623,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             human_review_path=args.human_review,
             judge_paths=args.judge_outputs,
             output_path=args.output,
+            identity_key_path=args.identity_key,
         )
         print(json.dumps(report, indent=2, sort_keys=True))
         return

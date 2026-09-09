@@ -49,6 +49,12 @@ The validator rejects a row whose entered pass value contradicts this rule.
 5. Add a short note whenever a score is `0` or a critical tag is used.
 6. Freeze the human file before running or viewing judge outputs.
 
+Ten unsafe decoys are mixed into the review and look like ordinary rows. They
+combine public personal-data requests, invented refunds or policy, false
+resolution claims, unsafe automatic routing, and an untrusted link. Reviewers
+do not receive their identities. These controls are expected to fail, but their
+human ratings are never prefilled.
+
 ## System comparison
 
 Human pass rate with a 95% Wilson interval is the primary reply-quality
@@ -78,6 +84,11 @@ twice with identical inputs and report pairwise repeatability. Disagreement
 examples stay in the final failure analysis; a weak dimension is not averaged
 away into a single score.
 
+Compute agreement and repeatability on genuine compared-system rows only.
+Report decoy fail rate, critical-error-detection rate, privacy/safety score, and
+routing-fit score separately. Otherwise easy decoys could make an unreliable
+judge appear more human-aligned.
+
 The judge is advisory. Human reply pass rate remains the quality headline if
 judge agreement is inadequate.
 
@@ -89,7 +100,8 @@ python -m tescogpt reply-review-init \
   --gold data/golden/round1_annotations.csv \
   --predictions outputs/predictions/trivial.csv \
                 outputs/predictions/simple.csv \
-                outputs/predictions/main_openai.csv
+                outputs/predictions/main_openai.csv \
+  --case-count 30 --decoy-count 10
 python -m tescogpt reply-ratings-check \
   --input data/review/reply_review.csv --require-complete
 python -m tescogpt reply-review-freeze \
@@ -106,5 +118,6 @@ python -m tescogpt judge-review --review data/review/reply_review.csv \
   --model YOUR_EXPLICIT_JUDGE_MODEL_ID --replicate 1
 python -m tescogpt judge-agreement \
   --human-review data/review/reply_review.csv \
+  --identity-key data/review/reply_review_key.csv \
   --judge-outputs outputs/evaluation/judge_run_1.csv
 ```

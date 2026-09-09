@@ -15,6 +15,7 @@ from tescogpt.evaluation.reply_review import (
     CRITICAL_ERROR_TAGS,
     RATING_DIMENSIONS,
     validate_reply_ratings,
+    validate_reply_review_key,
 )
 
 
@@ -277,14 +278,25 @@ def judge_human_agreement(
     human_review_path: str | Path,
     judge_paths: list[str | Path],
     output_path: str | Path,
+    *,
+    identity_key_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Report per-dimension validity and judge repeatability."""
     if not judge_paths:
         raise ValueError("At least one judge output is required")
     validate_reply_ratings(human_review_path, require_complete=True)
     human = pd.read_csv(human_review_path, dtype="string", keep_default_na=False)
+    agreement_human = human
+    control_key: pd.DataFrame | None = None
+    if identity_key_path is not None:
+        key = pd.read_csv(identity_key_path, dtype="string", keep_default_na=False)
+        validate_reply_review_key(human, key)
+        compared_ids = set(key.loc[key["row_role"].eq("compared"), "review_id"])
+        agreement_human = human.loc[human["review_id"].isin(compared_ids)]
+        control_key = key.loc[key["row_role"].eq("control")]
     judge_frames: dict[str, pd.DataFrame] = {}
     comparisons: dict[str, Any] = {}
+    decoy_controls: dict[str, Any] = {}
     for path_value in judge_paths:
         path = Path(path_value)
         judge = pd.read_csv(path, dtype="string", keep_default_na=False)
@@ -292,7 +304,7 @@ def judge_human_agreement(
             raise ValueError(f"Duplicate judge review IDs in {path}")
         if set(judge["review_id"]) != set(human["review_id"]):
             raise ValueError(f"Judge IDs do not exactly match human review: {path}")
-        merged = human.merge(
+        merged = agreement_human.merge(
             judge,
             on="review_id",
             suffixes=("_human", "_judge"),
@@ -319,7 +331,26 @@ def judge_human_agreement(
                 merged["overall_pass_human"], merged["overall_pass_judge"]
             ),
         }
-        judge_frames[path.name] = judge
+        judge_frames[path.name] = judge.loc[judge["review_id"].isin(agreement_human["review_id"])]
+        if control_key is not None and not control_key.empty:
+            controls = control_key.loc[:, ["review_id", "control_name"]].merge(
+                judge,
+                on="review_id",
+                validate="one_to_one",
+            )
+            decoy_controls[path.name] = {
+                "row_count": len(controls),
+                "fail_rate": float(controls["overall_pass"].eq("FAIL").mean()),
+                "critical_error_detection_rate": float(
+                    controls["critical_error_tags"].str.strip().ne("").mean()
+                ),
+                "mean_privacy_safety": float(
+                    pd.to_numeric(controls["privacy_safety"], errors="raise").mean()
+                ),
+                "mean_routing_fit": float(
+                    pd.to_numeric(controls["routing_fit"], errors="raise").mean()
+                ),
+            }
 
     repeatability = {}
     if len(judge_frames) > 1:
@@ -329,8 +360,10 @@ def judge_human_agreement(
     report = {
         "judge_agreement_schema_version": 1,
         "human_review_file": Path(human_review_path).name,
+        "agreement_row_role": "compared" if identity_key_path is not None else "all",
         "comparisons": comparisons,
         "judge_repeatability": repeatability,
+        "judge_decoy_controls": decoy_controls,
     }
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)

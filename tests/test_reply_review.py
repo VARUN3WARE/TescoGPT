@@ -87,16 +87,23 @@ def test_reply_review_is_stratified_and_system_blinded(tmp_path: Path) -> None:
         key,
         tmp_path / "manifest.json",
         case_count=3,
+        decoy_count=1,
         seed=4,
     )
 
     review_frame = pd.read_csv(review)
     key_frame = pd.read_csv(key)
-    assert len(review_frame) == 6
-    assert "system_name" not in review_frame
-    assert "sample_slice" not in review_frame
-    assert set(key_frame["system_name"]) == {"a", "b"}
+    assert len(review_frame) == 7
+    assert not {"system_name", "sample_slice", "row_role", "control_name"} & set(
+        review_frame
+    )
+    assert set(key_frame.loc[key_frame["row_role"].eq("compared"), "system_name"]) == {
+        "a",
+        "b",
+    }
+    assert set(key_frame["row_role"]) == {"compared", "control"}
     assert manifest["slice_case_counts"] == {"challenge": 1, "natural": 2}
+    assert manifest["control_count"] == 1
     assert manifest["review_content_sha256"]
 
 
@@ -157,16 +164,26 @@ def test_reply_quality_freeze_and_pairwise_summary(tmp_path: Path) -> None:
         key,
         manifest_path,
         case_count=3,
+        decoy_count=1,
         seed=4,
     )
     review_frame = pd.read_csv(review, dtype="string", keep_default_na=False)
     key_frame = pd.read_csv(key, dtype="string", keep_default_na=False)
     system_by_review = key_frame.set_index("review_id")["system_name"]
     for index, row in review_frame.iterrows():
-        is_reference = system_by_review.loc[row["review_id"]] == "a"
+        system = system_by_review.loc[row["review_id"]]
+        is_reference = system == "a"
+        is_control = system == "__judge_control__"
         for dimension in RATING_DIMENSIONS:
-            review_frame.loc[index, dimension] = "2" if is_reference else "1"
-        review_frame.loc[index, "overall_pass"] = "PASS" if is_reference else "FAIL"
+            review_frame.loc[index, dimension] = (
+                "0" if is_control else "2" if is_reference else "1"
+            )
+        review_frame.loc[index, "critical_error_tags"] = (
+            "unsafe_data_request" if is_control else ""
+        )
+        review_frame.loc[index, "overall_pass"] = (
+            "PASS" if is_reference and not is_control else "FAIL"
+        )
         review_frame.loc[index, "reviewer_id"] = "human_a"
     review_frame.to_csv(review, index=False)
 
@@ -183,6 +200,8 @@ def test_reply_quality_freeze_and_pairwise_summary(tmp_path: Path) -> None:
     assert report["systems"]["a"]["slices"]["all"]["overall_pass_rate"] == 1
     assert report["systems"]["b"]["slices"]["all"]["overall_pass_rate"] == 0
     assert report["rubric_derived_pairwise"]["b"]["reference_wins"] == 3
+    assert report["human_decoy_controls"]["fail_rate"] == 1
+    assert report["human_decoy_controls"]["critical_error_detection_rate"] == 1
 
 
 def test_kappa_statistics_have_known_endpoints() -> None:
@@ -264,14 +283,16 @@ def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> N
 
     human_rows = []
     judge_rows = []
+    key_rows = []
     for index, score in enumerate((0, 1, 2)):
+        critical_tags = "unsafe_data_request" if index == 0 else ""
         human_rows.append(
             {
                 "review_id": f"review-{index}",
                 "case_id": f"case-{index}",
                 "draft_reply": "reply",
                 **{dimension: str(score) for dimension in RATING_DIMENSIONS},
-                "critical_error_tags": "",
+                "critical_error_tags": critical_tags,
                 "overall_pass": "PASS" if score == 2 else "FAIL",
                 "reviewer_id": "human_a",
                 "review_notes": "",
@@ -281,21 +302,42 @@ def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> N
             {
                 "review_id": f"review-{index}",
                 **{dimension: score for dimension in RATING_DIMENSIONS},
-                "critical_error_tags": "",
+                "critical_error_tags": critical_tags,
                 "overall_pass": "PASS" if score == 2 else "FAIL",
                 "rationale": "rated",
             }
         )
+        key_rows.append(
+            {
+                "review_id": f"review-{index}",
+                "case_id": f"case-{index}",
+                "sample_slice": "natural",
+                "row_role": "control" if index == 0 else "compared",
+                "system_name": "__judge_control__" if index == 0 else "a",
+                "control_name": "unsafe_public_data_and_refund" if index == 0 else "",
+            }
+        )
     human_path = tmp_path / "human.csv"
     judge_path = tmp_path / "judge.csv"
+    key_path = tmp_path / "key.csv"
     pd.DataFrame(human_rows).to_csv(human_path, index=False)
     pd.DataFrame(judge_rows).to_csv(judge_path, index=False)
+    pd.DataFrame(key_rows).to_csv(key_path, index=False)
     judge_report = judge_human_agreement(
         human_path,
         [judge_path],
         tmp_path / "judge_agreement.json",
+        identity_key_path=key_path,
     )
 
     assert annotation_report["overlap_count"] == 3
     assert annotation_report["fields"]["intent_label"]["cohen_kappa"] == 1
+    assert judge_report["comparisons"]["judge.csv"]["row_count"] == 2
     assert judge_report["comparisons"]["judge.csv"]["overall_pass_cohen_kappa"] == 1
+    assert judge_report["judge_decoy_controls"]["judge.csv"]["fail_rate"] == 1
+    assert (
+        judge_report["judge_decoy_controls"]["judge.csv"][
+            "critical_error_detection_rate"
+        ]
+        == 1
+    )

@@ -88,8 +88,9 @@ does not reveal relevant items missed by both systems.
 
 After golden labels and final system outputs are frozen, `reply-review-init`
 selects 30 stratified cases and places every compared system's draft into a
-randomized, system-blinded 90-row human review. The identity key is written to a
-separate file. The six-dimension scale, critical-error tags, pass rule, and
+randomized, system-blinded review. With three compared systems, its 90 genuine
+rows are mixed with 10 deliberately unsafe decoys. The identity key is written
+to a separate file. The six-dimension scale, critical-error tags, pass rule, and
 judge-agreement statistics are frozen in
 [the reply-quality rubric](JUDGE_RUBRIC.md).
 
@@ -103,4 +104,6 @@ means remain visible to prevent compensation from hiding safety failures.
 `annotation-agreement` reports Cohen's kappa for intent, handling, and reason on
 the independent 60-case overlap. `judge-agreement` reports exact agreement,
 within-one agreement, and quadratic-weighted kappa for every reply dimension,
-plus overall-pass kappa and pairwise repeatability across judge runs.
+plus overall-pass kappa and pairwise repeatability across judge runs. Agreement
+and repeatability exclude the decoys so easy controls cannot inflate validity;
+decoy fail and critical-error-detection rates are reported separately.

@@ -92,7 +92,8 @@ Planned primary measures:
 - human all-critical-dimensions reply pass rate with a Wilson interval;
 - rubric-derived, case-matched reply win/tie/loss against baselines;
 - pooled retrieval Precision@3/nDCG@3 on blinded human relevance labels; and
-- judge–human agreement per dimension, repeatability, and disagreement analysis.
+- judge–human agreement per dimension, repeatability, unsafe-decoy sensitivity,
+  and disagreement analysis.
 
 Metric definitions and the currently runnable label-free safety audit are in
 [the evaluation protocol](docs/EVALUATION.md). Human-dependent metrics are coded

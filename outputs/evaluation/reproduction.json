@@ -20,7 +20,7 @@
     }
   },
   "configured_status": "AWAITING_HUMAN_LABELS",
-  "elapsed_seconds": 0.138,
+  "elapsed_seconds": 0.154,
   "integrity_checks": [
     {
       "actual_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",

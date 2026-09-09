@@ -19,7 +19,7 @@ they are never typed into the report independently.
 | 6 | `feat(retrieval): index outcome-aware historical precedents` | Blinded pooled relevance sample, Precision@3/nDCG@3, self-case exclusion tests |
 | 7 | `feat(agent): add grounded drafting and policy-gated escalation` | Structured output, evidence validation, deterministic safety tests |
 | 8 | `feat(eval): add selective-risk and reply-quality evaluation` | Confidence intervals, risk–coverage, pairwise tables, raw predictions |
-| 9 | `eval: validate LLM judge against blinded human ratings` | Agreement, position swap, repeatability, and decoy results |
+| 9 | `eval: validate LLM judge against blinded human ratings` | Agreement, system-blinding audit, repeatability, and decoy results |
 | 10 | `docs: publish results, failures, caveats, and decision log` | Maximum six-page report or equivalent concise README section |
 | 11 | `chore: verify clean-room reproduction under 15 minutes` | Fresh environment succeeds from documented command; final tag created |
 
@@ -31,6 +31,12 @@ Recall@3 is not identifiable from a judged top-k pool because relevant documents
 missed by both systems remain unknown. The replacement reports explicitly pooled
 Precision@3 and nDCG@3 plus paired query wins/ties/losses; this is a validity fix,
 not a post-result relaxation.
+
+The phase-9 plan originally named a position-swap test. This judge scores one
+reply at a time and never sees alternatives or a left/right order, so that test
+has no applicable position to swap. The replacement audits system blinding and
+keeps repeated identical runs plus hidden unsafe decoys. This correction is
+recorded before any judge output exists.
 
 ## Non-negotiable acceptance gates
 
