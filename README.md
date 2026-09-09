@@ -1,5 +1,7 @@
 # TescoGPT
 
+[![CI](https://github.com/VARUN3WARE/TescoGPT/actions/workflows/ci.yml/badge.svg)](https://github.com/VARUN3WARE/TescoGPT/actions/workflows/ci.yml)
+
 An evaluation-first AI support agent for Tesco conversations from the
 [Customer Support on Twitter](https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter)
 dataset.
