@@ -71,6 +71,19 @@ python -m tescogpt evaluate \
 The final run will replace `main_template.csv` with the frozen API-backed main
 system if that experiment is completed.
 
+## Retrieval relevance
+
+A 25-query stratified review pools the top-three results from plain BM25 and the
+outcome-aware reranker. Candidate order is randomized, and the human does not
+see system identity, rank, weak outcome tier, or score. Grades are `0`
+(irrelevant/misleading), `1` (related but action mismatch), or `2` (same issue
+and compatible action). Exact instructions and commands are in
+[the retrieval note](RETRIEVAL.md).
+
+The harness reports macro-averaged pooled Precision@3, pooled nDCG@3, and paired
+query wins/ties/losses. It does not report Recall@3 because a top-k result pool
+does not reveal relevant items missed by both systems.
+
 ## Reply quality and judge validity
 
 After golden labels and final system outputs are frozen, `reply-review-init`

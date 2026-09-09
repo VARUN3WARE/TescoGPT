@@ -14,6 +14,10 @@ from tescogpt.evaluation.agreement import annotation_agreement
 from tescogpt.evaluation.judge import judge_human_agreement
 from tescogpt.evaluation.labels import validate_annotations
 from tescogpt.evaluation.metrics import evaluate_predictions
+from tescogpt.evaluation.retrieval_review import (
+    evaluate_retrieval_review,
+    validate_retrieval_review,
+)
 from tescogpt.evaluation.safety import audit_prediction_safety
 
 
@@ -124,6 +128,29 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
     )
     if retrieval_manifest.get("input_sha256") != registry_hash:
         raise ValueError("Retrieval input hash does not match the frozen registry")
+
+    relevance_manifest_path = _resolve(root, config["retrieval_review_manifest"])
+    relevance_manifest = json.loads(relevance_manifest_path.read_text(encoding="utf-8"))
+    relevance_review_path = _resolve(root, config["retrieval_review_file"])
+    relevance_key_path = _resolve(root, config["retrieval_review_key"])
+    _hash_check(
+        checks,
+        name="retrieval relevance review",
+        path=relevance_review_path,
+        expected=relevance_manifest.get("review_sha256"),
+    )
+    _hash_check(
+        checks,
+        name="retrieval relevance identity key",
+        path=relevance_key_path,
+        expected=relevance_manifest.get("identity_key_sha256"),
+    )
+    if relevance_manifest.get("registry_sha256") != registry_hash:
+        raise ValueError("Retrieval relevance review does not match the frozen registry")
+    validate_retrieval_review(
+        relevance_review_path,
+        require_complete=relevance_manifest.get("label_status") == "HUMAN_LABELED",
+    )
     return checks
 
 
@@ -206,6 +233,9 @@ def reproduce_project(
         },
         "static_safety_system_count": len(safety["systems"]),
     }
+    relevance_manifest_path = _resolve(root, config["retrieval_review_manifest"])
+    relevance_manifest = json.loads(relevance_manifest_path.read_text(encoding="utf-8"))
+    report["retrieval_review_status"] = relevance_manifest["label_status"]
     if not complete:
         report["status"] = "AWAITING_HUMAN_LABELS"
         report["elapsed_seconds"] = round(time.perf_counter() - started, 3)
@@ -250,6 +280,18 @@ def reproduce_project(
     )
     report["annotation_agreement_overlap"] = agreement["overlap_count"]
     report["evaluated_system_count"] = metrics["system_count"]
+
+    if relevance_manifest["label_status"] == "HUMAN_LABELED":
+        retrieval_metrics = evaluate_retrieval_review(
+            _resolve(root, config["retrieval_review_file"]),
+            _resolve(root, config["retrieval_review_key"]),
+            _resolve(root, config["retrieval_metrics_output"]),
+            top_k=int(relevance_manifest["top_k"]),
+            manifest_path=relevance_manifest_path,
+        )
+        report["retrieval_evaluated_system_count"] = len(retrieval_metrics["systems"])
+    elif config["status"] == "FINAL":
+        raise ValueError("FINAL config requires frozen human retrieval relevance ratings")
 
     human_review = config.get("reply_review_file")
     judge_outputs = config.get("judge_output_files", [])

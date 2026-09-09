@@ -13,6 +13,10 @@
     "outputs/predictions/main_template.csv"
   ],
   "retrieval_file": "outputs/retrieval/outcome_aware.csv",
+  "retrieval_review_file": "data/review/retrieval_relevance.csv",
+  "retrieval_review_key": "data/review/retrieval_relevance_key.csv",
+  "retrieval_review_manifest": "data/review/retrieval_relevance.manifest.json",
+  "retrieval_metrics_output": "outputs/evaluation/retrieval_metrics.json",
   "headline_system": null,
   "bootstrap_iterations": 2000,
   "seed": 20260911,

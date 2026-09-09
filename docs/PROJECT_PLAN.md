@@ -15,8 +15,8 @@ they are never typed into the report independently.
 | 2 | `analysis: profile Tesco traffic and historical outcomes` | Reproducible brand audit, date distribution, thread quality, and failure examples |
 | 3 | `feat(labels): define intent and routing annotation codebook` | Mutually usable labels, ambiguity rules, and pilot agreement results |
 | 4 | `feat(eval-data): freeze the 200-example golden set` | IDs frozen, hashes recorded, no overlap, second-annotation slice present |
-| 5 | `feat(baselines): add trivial and sparse-model baselines` | Same input/output schema and evaluation path as the main system |
-| 6 | `feat(retrieval): index outcome-aware historical precedents` | Human relevance sample, Recall@k/nDCG, self-case exclusion tests |
+| 5 | `feat(baselines): add trivial and rule-plus-BM25 baselines` | Same input/output schema and evaluation path as the main system |
+| 6 | `feat(retrieval): index outcome-aware historical precedents` | Blinded pooled relevance sample, Precision@3/nDCG@3, self-case exclusion tests |
 | 7 | `feat(agent): add grounded drafting and policy-gated escalation` | Structured output, evidence validation, deterministic safety tests |
 | 8 | `feat(eval): add selective-risk and reply-quality evaluation` | Confidence intervals, risk–coverage, pairwise tables, raw predictions |
 | 9 | `eval: validate LLM judge against blinded human ratings` | Agreement, position swap, repeatability, and decoy results |
@@ -25,6 +25,12 @@ they are never typed into the report independently.
 
 Commit names may change to describe the actual diff; phases and exit criteria
 will not be silently weakened.
+
+The phase-6 metric was corrected before relevance labels were collected:
+Recall@3 is not identifiable from a judged top-k pool because relevant documents
+missed by both systems remain unknown. The replacement reports explicitly pooled
+Precision@3 and nDCG@3 plus paired query wins/ties/losses; this is a validity fix,
+not a post-result relaxation.
 
 ## Non-negotiable acceptance gates
 
@@ -76,4 +82,3 @@ will not be silently weakened.
 
 The implementation and report must answer each question with an artifact, test,
 or labelled example.
-

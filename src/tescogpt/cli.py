@@ -22,6 +22,12 @@ from tescogpt.evaluation.reply_review import (
     validate_reply_ratings,
 )
 from tescogpt.evaluation.reproduce import reproduce_project
+from tescogpt.evaluation.retrieval_review import (
+    evaluate_retrieval_review,
+    freeze_retrieval_review,
+    initialize_retrieval_review,
+    validate_retrieval_review,
+)
 from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.evaluation.sampling import sample_golden_candidates
 from tescogpt.prediction import run_predictions
@@ -352,6 +358,63 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Run integrity/readiness checks without pretending labels are complete.",
     )
 
+    retrieval_review_init = subparsers.add_parser(
+        "retrieval-review-init",
+        help="Create a pooled, system-blinded retrieval relevance review.",
+    )
+    retrieval_review_init.add_argument(
+        "--registry", type=Path, default=Path("data/golden/golden_candidates.csv")
+    )
+    retrieval_review_init.add_argument(
+        "--corpus", type=Path, default=Path("data/processed/tesco_cases.csv")
+    )
+    retrieval_review_init.add_argument(
+        "--review", type=Path, default=Path("data/review/retrieval_relevance.csv")
+    )
+    retrieval_review_init.add_argument(
+        "--identity-key",
+        type=Path,
+        default=Path("data/review/retrieval_relevance_key.csv"),
+    )
+    retrieval_review_init.add_argument(
+        "--manifest",
+        type=Path,
+        default=Path("data/review/retrieval_relevance.manifest.json"),
+    )
+    retrieval_review_init.add_argument("--query-count", type=int, default=25)
+    retrieval_review_init.add_argument("--top-k", type=int, default=3)
+    retrieval_review_init.add_argument("--candidate-pool", type=int, default=50)
+    retrieval_review_init.add_argument("--seed", type=int, default=20260913)
+
+    retrieval_review_check = subparsers.add_parser(
+        "retrieval-review-check",
+        help="Validate pooled retrieval relevance judgments.",
+    )
+    retrieval_review_check.add_argument("--input", type=Path, required=True)
+    retrieval_review_check.add_argument("--require-complete", action="store_true")
+
+    retrieval_review_freeze = subparsers.add_parser(
+        "retrieval-review-freeze",
+        help="Freeze completed human relevance judgments and verify blind content.",
+    )
+    retrieval_review_freeze.add_argument("--review", type=Path, required=True)
+    retrieval_review_freeze.add_argument("--identity-key", type=Path, required=True)
+    retrieval_review_freeze.add_argument("--manifest", type=Path, required=True)
+
+    retrieval_evaluate = subparsers.add_parser(
+        "retrieval-evaluate",
+        help="Compute pooled Precision@k and nDCG@k from human relevance grades.",
+    )
+    retrieval_evaluate.add_argument("--review", type=Path, required=True)
+    retrieval_evaluate.add_argument("--identity-key", type=Path, required=True)
+    retrieval_evaluate.add_argument("--manifest", type=Path)
+    retrieval_evaluate.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/evaluation/retrieval_metrics.json"),
+    )
+    retrieval_evaluate.add_argument("--top-k", type=int, default=3)
+
     return parser
 
 
@@ -521,6 +584,49 @@ def main(argv: Sequence[str] | None = None) -> None:
         report = reproduce_project(
             args.config,
             allow_incomplete=args.allow_incomplete,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.command == "retrieval-review-init":
+        manifest = initialize_retrieval_review(
+            registry_path=args.registry,
+            corpus_path=args.corpus,
+            review_path=args.review,
+            key_path=args.identity_key,
+            manifest_path=args.manifest,
+            query_count=args.query_count,
+            top_k=args.top_k,
+            candidate_pool=args.candidate_pool,
+            seed=args.seed,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "retrieval-review-check":
+        progress = validate_retrieval_review(
+            args.input,
+            require_complete=args.require_complete,
+        )
+        print(json.dumps(progress, indent=2, sort_keys=True))
+        return
+
+    if args.command == "retrieval-review-freeze":
+        manifest = freeze_retrieval_review(
+            review_path=args.review,
+            key_path=args.identity_key,
+            manifest_path=args.manifest,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "retrieval-evaluate":
+        report = evaluate_retrieval_review(
+            review_path=args.review,
+            key_path=args.identity_key,
+            output_path=args.output,
+            top_k=args.top_k,
+            manifest_path=args.manifest,
         )
         print(json.dumps(report, indent=2, sort_keys=True))
         return

@@ -1,0 +1,20 @@
+{
+  "candidate_pool": 50,
+  "corpus_sha256": "dce80d676b7a1979b5a8454b24ef86d5be12c2fbbad26a2ef497b627e65481bb",
+  "identity_key_file": "retrieval_relevance_key.csv",
+  "identity_key_sha256": "76cefaf4a2877090e9cb5a5e094b8c22fec2e673f98d5ecdd99c7a27f0053cc4",
+  "judgment_count": 117,
+  "label_status": "UNLABELED",
+  "query_count": 25,
+  "registry_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
+  "retrieval_review_schema_version": 1,
+  "review_content_sha256": "e5a621dadd1acd74274380c5cf967fad58792bc42f85373ebd99c6a3e9e17f68",
+  "review_file": "retrieval_relevance.csv",
+  "review_sha256": "99d0b2b8170373b4e485672bcefa6349549f68eda5e37f897116ec6ae4834753",
+  "seed": 20260913,
+  "slice_query_counts": {
+    "challenge": 6,
+    "natural": 19
+  },
+  "top_k": 3
+}

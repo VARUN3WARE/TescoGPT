@@ -91,7 +91,7 @@ Planned primary measures:
 - risk–coverage curve and cost-sensitive routing utility;
 - human all-critical-dimensions reply pass rate;
 - pairwise reply win/tie/loss against baselines;
-- retrieval Recall@k/nDCG on human relevance labels; and
+- pooled retrieval Precision@3/nDCG@3 on blinded human relevance labels; and
 - judge–human agreement per dimension, repeatability, and disagreement analysis.
 
 Metric definitions and the currently runnable label-free safety audit are in
@@ -152,6 +152,7 @@ python -m tescogpt sample
 python -m tescogpt labels-init
 python -m tescogpt labels-check --input data/golden/round1_annotations.csv
 python -m tescogpt retrieve
+python -m tescogpt retrieval-review-check --input data/review/retrieval_relevance.csv
 ```
 
 Raw and full processed datasets are gitignored. The command writes a long-form
@@ -180,7 +181,13 @@ Historical replies are retrieved only from the training period and reranked by
 weak follow-up evidence plus static safety penalties. The full method, its
 unfitted scoring formula, and its limitations are in
 [the retrieval note](docs/RETRIEVAL.md); raw top-three evidence is committed for
-all 200 candidates.
+all 200 candidates. A separate system-blinded review pools plain-BM25 and
+outcome-reranked top-three results for 25 frozen queries (117 query-candidate
+pairs). It reports pooled Precision@3 and nDCG@3. It deliberately does not call
+this Recall@3: judging only the retrieved pool cannot establish how many
+relevant cases exist in the whole corpus. A reviewer-friendly Excel copy is in
+`outputs/review_workbook/retrieval_relevance_review.xlsx`; only its primary
+review sheet should be exported back to the tracked CSV.
 
 ## Repository map
 

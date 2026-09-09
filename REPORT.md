@@ -93,6 +93,12 @@ and quadratic-weighted kappa; overall pass uses accuracy and Cohen's kappa.
 Repeated judge runs expose instability. If agreement is weak, the human pass
 rate remains the headline.
 
+Retrieval uses a separate system-blinded review: 25 stratified queries and the
+pooled union of BM25 and reranked top-three candidates (117 judgments). It
+reports pooled Precision@3, graded nDCG@3, and paired wins/ties/losses. It does
+not report Recall@3 because the pool cannot reveal relevant cases missed by both
+systems.
+
 ## 5. Results
 
 Human-dependent results are not available yet. The final table must compare both
