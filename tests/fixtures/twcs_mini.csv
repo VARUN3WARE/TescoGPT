@@ -10,4 +10,3 @@ tweet_id,author_id,inbound,created_at,text,response_tweet_id,in_response_to_twee
 20,Tesco,False,Wed Nov 01 11:00:00 +0000 2017,Store opening update.,21,
 21,300001,True,Wed Nov 01 11:03:00 +0000 2017,@Tesco thank you,,20
 30,400001,True,Wed Nov 01 12:00:00 +0000 2017,I mentioned Tesco in text but this is not a support thread.,,
-
