@@ -13,7 +13,11 @@ from tescogpt.evaluation.adjudication import validate_adjudication
 from tescogpt.evaluation.judge import validate_judge_output
 from tescogpt.evaluation.labels import validate_annotations
 from tescogpt.evaluation.reply_review import validate_reply_ratings
-from tescogpt.evaluation.reproduce import _validate_generation_provenance
+from tescogpt.evaluation.report import validate_submission_report
+from tescogpt.evaluation.reproduce import (
+    _validate_generation_provenance,
+    verify_artifact_integrity,
+)
 from tescogpt.evaluation.retrieval_review import validate_retrieval_review
 
 
@@ -115,6 +119,22 @@ def project_status(
     config_file = Path(config_path).resolve()
     root = config_file.parent.parent
     config = json.loads(config_file.read_text(encoding="utf-8"))
+
+    report_path = _resolve(root, config.get("report_file"))
+    if report_path is not None and report_path.is_file():
+        report_status = validate_submission_report(
+            report_path,
+            max_words=int(config.get("report_max_words", 2400)),
+        )
+    else:
+        report_status = {
+            "file": report_path.name if report_path is not None else "REPORT.md",
+            "declared_status": "MISSING",
+            "word_count": 0,
+            "max_words": int(config.get("report_max_words", 2400)),
+            "required_section_count": 0,
+            "is_submission_ready": False,
+        }
 
     round_one_path = _resolve(
         root, config.get("round_one_annotation_file", config.get("gold_file"))
@@ -281,6 +301,7 @@ def project_status(
             and reply_manifest.get("label_status") == "HUMAN_RATED"
         ),
         "two_judge_replicates_frozen": _judge_replicates_ready(judge_runs),
+        "report_submission_ready": bool(report_status["is_submission_ready"]),
         "config_marked_final": config.get("status") == "FINAL",
     }
     actions = {
@@ -316,6 +337,9 @@ def project_status(
         "two_judge_replicates_frozen": (
             "Run and freeze at least two judge replicates over the same human review."
         ),
+        "report_submission_ready": (
+            "Replace pending results and change REPORT.md to SUBMISSION_STATUS: READY."
+        ),
         "config_marked_final": (
             "Finish the report, replace pending settings, and set config status to FINAL."
         ),
@@ -325,6 +349,7 @@ def project_status(
         for gate, passed in gates.items()
         if not passed
     ]
+    final_integrity_checks = verify_artifact_integrity(config, root) if not blockers else []
     report = {
         "project_status_schema_version": 1,
         "configured_status": config.get("status"),
@@ -344,6 +369,8 @@ def project_status(
         "api_systems": sorted(api_systems),
         "headline_system": headline_system,
         "judge_runs": judge_runs,
+        "report": report_status,
+        "final_integrity_check_count": len(final_integrity_checks),
     }
     destination_value = output_path or config.get("status_output")
     destination = (

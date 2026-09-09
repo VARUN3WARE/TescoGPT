@@ -21,6 +21,7 @@ from tescogpt.evaluation.reply_review import (
     validate_reply_review_key,
     validate_reply_review_sources,
 )
+from tescogpt.evaluation.report import validate_submission_report
 from tescogpt.evaluation.retrieval_review import (
     evaluate_retrieval_review,
     validate_retrieval_review,
@@ -376,6 +377,12 @@ def reproduce_project(
     config = json.loads(config_file.read_text(encoding="utf-8"))
     if config.get("experiment_schema_version") != 1:
         raise ValueError("Unsupported experiment configuration schema")
+    if config.get("status") == "FINAL":
+        validate_submission_report(
+            _resolve(root, config["report_file"]),
+            max_words=int(config["report_max_words"]),
+            require_ready=True,
+        )
     integrity_checks = verify_artifact_integrity(config, root)
 
     round_one = _resolve(

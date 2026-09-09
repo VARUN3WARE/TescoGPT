@@ -282,6 +282,35 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
     codebook = root / "docs" / "ANNOTATION_GUIDE.md"
     codebook.parent.mkdir(parents=True)
     codebook.write_text("# Synthetic frozen codebook\n", encoding="utf-8", newline="\n")
+    submission_report = root / "REPORT.md"
+    submission_report.write_text(
+        """# Synthetic report
+
+<!-- SUBMISSION_STATUS: READY -->
+
+## Problem framing
+
+Synthetic integration proof only.
+
+## Results
+
+The constant baseline and simple baseline are compared with the main system.
+
+## Failure analysis
+
+Synthetic failures exercise the ledger.
+
+## What is misleading about my headline number?
+
+These values are not real project results.
+
+## With one more week
+
+Collect real human evidence.
+""",
+        encoding="utf-8",
+        newline="\n",
+    )
 
     annotations = _annotation_rows("human-round-one")
     round_one = _write_csv(root / "data/golden/round1.csv", annotations)
@@ -481,6 +510,8 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
         "expected_retrieval_query_count": 2,
         "expected_reply_review_case_count": 2,
         "expected_reply_control_count": 1,
+        "report_file": "REPORT.md",
+        "report_max_words": 2400,
         "gold_file": "data/golden/final.csv",
         "round_one_annotation_file": "data/golden/round1.csv",
         "second_annotation_file": "data/golden/round2.csv",

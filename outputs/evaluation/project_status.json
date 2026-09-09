@@ -43,11 +43,16 @@
       "next_action": "Run and freeze at least two judge replicates over the same human review."
     },
     {
+      "gate": "report_submission_ready",
+      "next_action": "Replace pending results and change REPORT.md to SUBMISSION_STATUS: READY."
+    },
+    {
       "gate": "config_marked_final",
       "next_action": "Finish the report, replace pending settings, and set config status to FINAL."
     }
   ],
   "configured_status": "AWAITING_HUMAN_LABELS",
+  "final_integrity_check_count": 0,
   "gates": {
     "api_main_prediction_frozen": false,
     "categorical_adjudication_complete": false,
@@ -58,6 +63,7 @@
     "independent_rounds_frozen": false,
     "primary_annotations_complete": false,
     "reply_review_frozen": false,
+    "report_submission_ready": false,
     "required_baselines_frozen": true,
     "retrieval_review_frozen": false,
     "three_systems_frozen": true,
@@ -142,5 +148,13 @@
     }
   ],
   "project_status_schema_version": 1,
-  "ready_for_final_reproduction": false
+  "ready_for_final_reproduction": false,
+  "report": {
+    "declared_status": "PENDING",
+    "file": "REPORT.md",
+    "is_submission_ready": false,
+    "max_words": 2400,
+    "required_section_count": 5,
+    "word_count": 1595
+  }
 }

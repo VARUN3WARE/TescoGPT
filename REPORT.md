@@ -1,5 +1,7 @@
 # TescoGPT — evaluation-first support automation
 
+<!-- SUBMISSION_STATUS: PENDING -->
+
 **Report status:** experiment design and pre-label diagnostics are frozen. Human
 gold labels, API-backed main predictions, reply ratings, and judge agreement are
 pending. This document is intentionally not yet submission-ready.

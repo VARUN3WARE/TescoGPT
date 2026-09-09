@@ -127,6 +127,10 @@ Add both judge output paths to `judge_output_files` in the config.
 Replace every pending result in `REPORT.md` from generated artifacts, select the
 five real failure modes from the failure ledger, and set config `status` to
 `FINAL`. Never type an aggregate into the report without a generated source.
+Only after that review, change the report's single
+`SUBMISSION_STATUS: PENDING` marker to `SUBMISSION_STATUS: READY`. The preflight
+also enforces all assignment sections and a conservative 2,400-word guard for
+the six-page limit.
 
 ```bash
 python -m tescogpt status --require-final-ready

@@ -6,6 +6,8 @@
   "expected_retrieval_query_count": 25,
   "expected_reply_review_case_count": 30,
   "expected_reply_control_count": 10,
+  "report_file": "REPORT.md",
+  "report_max_words": 2400,
   "gold_file": "data/golden/round1_annotations.csv",
   "round_one_annotation_file": "data/golden/round1_annotations.csv",
   "second_annotation_file": "data/golden/round2_annotations.csv",
