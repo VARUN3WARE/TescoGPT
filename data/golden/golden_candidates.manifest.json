@@ -1,9 +1,9 @@
 {
   "candidate_file": "golden_candidates.csv",
   "candidate_schema_version": 1,
-  "candidate_sha256": "4039f5220955ea93d238ac81062f16479fe7a4df0e0077f1817dc5659959cc4f",
+  "candidate_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
   "cases_file": "tesco_cases.csv",
-  "cases_sha256": "6c49b8856e4fd1833f85cc90b71b0b2bbb2bfe91281c29f13fd450df3453baa4",
+  "cases_sha256": "dce80d676b7a1979b5a8454b24ef86d5be12c2fbbad26a2ef497b627e65481bb",
   "challenge_count": 50,
   "challenge_flag_counts": {
     "account_or_order": 10,
@@ -40,7 +40,7 @@
     "train_fraction": 0.7
   },
   "codebook_file": "ANNOTATION_GUIDE.md",
-  "codebook_sha256": "6b506aac6d8dde8e8e209c458886aa9a108c81efd50658eee3aea13600366770",
+  "codebook_sha256": "6040cde0f7eafb2e29c65106e8ce3db61fbf75c55a6e762ee220cc3b885de3e7",
   "eligible_case_count": 25284,
   "eligible_test_case_count": 3892,
   "label_status": "UNLABELED",

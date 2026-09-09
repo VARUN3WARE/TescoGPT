@@ -38,6 +38,16 @@ def test_sanitizes_public_identifiers_and_flags_hard_cases() -> None:
     assert "7700" not in sanitized
     assert "https://" not in sanitized
     assert "<media_or_link>" in sanitized
+    assert (
+        sanitize_public_text("@12345 Hi Rebecca, can you DM us?")
+        == "@customer Hi <name_redacted>, can you DM us?"
+    )
+    assert (
+        sanitize_public_text("@12345 Hi Tom thanks for getting in touch")
+        == "@customer Hi <name_redacted> thanks for getting in touch"
+    )
+    assert sanitize_public_text("Hi there, can we help?") == "Hi there, can we help?"
+    assert sanitize_public_text("Hi Can you send a photo?") == "Hi Can you send a photo?"
     flags = challenge_flags("@Tesco glass in my food!! https://t.co/abc")
     assert "food_safety" in flags
     assert "punctuation_heavy" not in flags

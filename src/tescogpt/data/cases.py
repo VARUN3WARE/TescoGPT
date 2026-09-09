@@ -32,6 +32,13 @@ _NUMERIC_HANDLE = re.compile(r"@\d+")
 _TCO_URL = re.compile(r"https?://t\.co/\S+", re.IGNORECASE)
 _EMAIL = re.compile(r"\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b")
 _PHONE = re.compile(r"(?<!\d)(?:\+?\d[\d ()-]{7,}\d)(?!\d)")
+_GREETING_NAME = re.compile(
+    r"(?P<prefix>(?:@customer\s+)?(?:[Hh]i|[Hh]ello|[Hh]ey|[Hh]iya|[Mm]orning|"
+    r"[Aa]fternoon|[Ee]vening)\s*[,!-]?\s+)"
+    r"(?!There\b|All\b|Team\b|Can\b|Could\b|So\b|Our\b|We\b|Thanks\b|"
+    r"Thank\b|Sorry\b|Hope\b|Please\b|Just\b|This\b|Everyone\b|Tesco\b)"
+    r"(?P<name>[A-Z][A-Za-z'-]{1,30})(?P<punctuation>[,!.:]|\s)",
+)
 _AGENT_SIGNOFF = re.compile(r"(?:\^|\s[-–—]\s)[A-Z][A-Za-z .'-]{1,30}$")
 _WHITESPACE = re.compile(r"\s+")
 
@@ -90,6 +97,10 @@ def sanitize_public_text(text: str) -> str:
     value = _TCO_URL.sub("<media_or_link>", value)
     value = _EMAIL.sub("<email_redacted>", value)
     value = _PHONE.sub("<number_redacted>", value)
+    value = _GREETING_NAME.sub(
+        r"\g<prefix><name_redacted>\g<punctuation>",
+        value,
+    )
     value = _AGENT_SIGNOFF.sub("", value)
     return _WHITESPACE.sub(" ", value).strip()
 
