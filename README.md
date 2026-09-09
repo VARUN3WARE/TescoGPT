@@ -248,11 +248,11 @@ TescoGPT/
 
 ## Research basis
 
-- Dataset: [Customer Support on Twitter](https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter)
-- Selective prediction: [The Art of Abstention](https://aclanthology.org/2021.acl-long.84/)
-- Judge bias: [Judging the Judges](https://aclanthology.org/2025.ijcnlp-long.18/)
-- Product context: [Hiver on the AI trust gap](https://hiverhq.com/blog/ai-trust-gap-in-support)
+The complete [sources and attribution record](CITATIONS.md) names the dataset,
+method papers, API reference, software dependencies, and the exact ideas taken
+from each. It also discloses extensive AI coding assistance and separates it
+from the human work still required for the golden set and judge-validation
+ratings. No third-party implementation code was intentionally copied.
 
-All borrowed code, models, prompts, and data will be attributed at the point of
-use. Customer identifiers will remain anonymized, and no attempt will be made to
-reidentify dataset participants.
+Customer identifiers remain anonymized, and no attempt is made to reidentify
+dataset participants.
