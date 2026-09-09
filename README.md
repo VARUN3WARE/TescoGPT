@@ -197,8 +197,10 @@ work begins, completed files must be preserved rather than overwritten.
 To finish the human-label checkpoint, annotator one completes all 200 rows in
 `round1_annotations.csv`, while a different person independently completes the
 60 rows in `round2_annotations.csv`. Validate either file with
-`labels-check --require-complete`. AI-generated labels do not satisfy this
-project's golden-set requirement.
+`labels-check --require-complete`. A row counts as complete only when its
+intent, handling decision, reason, `must_include`, `must_avoid`, and annotator
+ID are all populated. Each round must use one stable annotator ID. AI-generated
+labels do not satisfy this project's golden-set requirement.
 
 Excel-friendly copies are available in `outputs/annotation_workbook`. They have
 dropdowns, an embedded codebook, frozen identifiers, and live progress counts.

@@ -41,11 +41,38 @@ def test_reports_unlabelled_and_complete_progress(tmp_path: Path) -> None:
         handling_label="ESCALATE",
         reason_code="ACCOUNT_OR_ORDER_LOOKUP",
         risk_tags="account_or_order",
+        must_include="Explain how to get order-specific help.",
+        must_avoid="Do not claim to know the order status.",
         annotator_id="annotator_a",
     )
     progress = validate_annotations(path, require_complete=True)
     assert progress["completed_count"] == 1
     assert progress["is_complete"]
+
+
+def test_completion_requires_reply_criteria_and_one_annotator(tmp_path: Path) -> None:
+    path = _sheet(
+        tmp_path / "annotations.csv",
+        intent_label="delivery_or_collection",
+        handling_label="ESCALATE",
+        reason_code="ACCOUNT_OR_ORDER_LOOKUP",
+        annotator_id="annotator_a",
+    )
+    with pytest.raises(ValueError, match="not completely labelled"):
+        validate_annotations(path, require_complete=True)
+
+    frame = pd.read_csv(path, dtype="string", keep_default_na=False)
+    frame["must_include"] = "Explain how to get order-specific help."
+    frame["must_avoid"] = "Do not invent an order status."
+    duplicate = frame.copy()
+    duplicate["case_id"] = "tesco-2"
+    duplicate["conversation_id"] = "2"
+    duplicate["tweet_id"] = "2"
+    duplicate["annotator_id"] = "annotator_b"
+    pd.concat([frame, duplicate], ignore_index=True).to_csv(path, index=False)
+
+    with pytest.raises(ValueError, match="exactly one annotator ID"):
+        validate_annotations(path, require_complete=True)
 
 
 def test_rejects_incompatible_reason_and_future_reply(tmp_path: Path) -> None:
@@ -154,6 +181,8 @@ def test_freezes_independent_labels_and_rejects_context_edits(tmp_path: Path) ->
         frame["intent_label"] = "feedback_praise_or_suggestion"
         frame["handling_label"] = "AUTO_HANDLE"
         frame["reason_code"] = "NO_ACTION_NEEDED"
+        frame["must_include"] = "Acknowledge the feedback."
+        frame["must_avoid"] = "Do not invent a follow-up action."
         frame["annotator_id"] = annotator
         frame.to_csv(path, index=False, lineterminator="\n")
 

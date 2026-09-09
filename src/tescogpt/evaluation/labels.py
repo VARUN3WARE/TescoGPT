@@ -68,6 +68,15 @@ LABEL_COLUMNS = (
     "annotation_notes",
 )
 
+COMPLETION_COLUMNS = (
+    "intent_label",
+    "handling_label",
+    "reason_code",
+    "must_include",
+    "must_avoid",
+    "annotator_id",
+)
+
 ANNOTATION_CONTEXT_COLUMNS = (
     "display_order",
     "case_id",
@@ -167,7 +176,12 @@ def validate_annotations(
     if escalate_wrong_reason.any():
         problems.append("ESCALATE row uses a non-escalation reason code")
 
-    completed = intents.ne("") & handling.ne("") & reasons.ne("") & annotators.ne("")
+    completed = (
+        annotations.loc[:, list(COMPLETION_COLUMNS)]
+        .apply(_values)
+        .ne("")
+        .all(axis=1)
+    )
     partially_completed = (
         annotations.loc[:, list(LABEL_COLUMNS)].apply(_values).ne("").any(axis=1) & ~completed
     )
@@ -175,6 +189,11 @@ def validate_annotations(
         problems.append(f"{int(partially_completed.sum())} partially completed rows")
     if require_complete and not completed.all():
         problems.append(f"{int((~completed).sum())} rows are not completely labelled")
+    unique_annotators = sorted(set(annotators.loc[annotators.ne("")]))
+    if require_complete and len(unique_annotators) != 1:
+        problems.append(
+            "a completed annotation round must use exactly one annotator ID"
+        )
     if problems:
         raise ValueError("; ".join(problems))
 
@@ -184,7 +203,7 @@ def validate_annotations(
         "completed_count": int(completed.sum()),
         "remaining_count": int((~completed).sum()),
         "completion_pct": round(100 * float(completed.mean()), 2) if len(annotations) else 0.0,
-        "annotator_ids": sorted(set(annotators.loc[annotators.ne("")])),
+        "annotator_ids": unique_annotators,
         "is_complete": bool(completed.all()),
     }
 

@@ -14,7 +14,8 @@ Annotator one completes all 200 rows in
 `outputs/annotation_workbook/round1_annotation.xlsx`. A different person
 independently completes all 60 rows in `round2_annotation.xlsx`. Each exports
 only the `Annotations` worksheet as CSV UTF-8 over the corresponding file in
-`data/golden`.
+`data/golden`. Every row needs the categorical labels, `must_include`,
+`must_avoid`, and the same stable annotator ID for that round.
 
 ```bash
 python -m tescogpt labels-check \

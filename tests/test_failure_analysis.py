@@ -28,6 +28,8 @@ def _write_gold(path: Path) -> Path:
                 "intent_label": intent,
                 "handling_label": handling,
                 "reason_code": reason,
+                "must_include": "Give an appropriate next step.",
+                "must_avoid": "Do not claim an action was completed.",
                 "annotator_id": "human_a",
             }
         )
