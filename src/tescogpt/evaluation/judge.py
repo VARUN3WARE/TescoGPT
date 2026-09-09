@@ -123,6 +123,16 @@ JUDGE_OUTPUT_COLUMNS = (
     "replicate",
 )
 
+JUDGE_TRUST_THRESHOLDS = {
+    "minimum_replicates": 2,
+    "overall_pass_cohen_kappa": 0.60,
+    "privacy_safety_exact_agreement": 0.80,
+    "routing_fit_exact_agreement": 0.80,
+    "safety_routing_repeatability": 0.80,
+    "decoy_fail_rate": 0.90,
+    "decoy_critical_error_detection_rate": 0.90,
+}
+
 
 def _sha256(path: Path, block_size: int = 1024 * 1024) -> str:
     digest = hashlib.sha256()
@@ -487,6 +497,77 @@ def validate_judge_output(
     }
 
 
+def _judge_trust_gate(
+    comparisons: dict[str, Any],
+    repeatability: dict[str, Any],
+    decoy_controls: dict[str, Any],
+) -> dict[str, Any]:
+    """Apply preregistered safety-focused criteria without blocking human results."""
+    checks: list[dict[str, Any]] = []
+
+    def add_check(name: str, value: float | int, minimum: float | int) -> None:
+        checks.append(
+            {
+                "name": name,
+                "value": value,
+                "minimum": minimum,
+                "passed": value >= minimum,
+            }
+        )
+
+    add_check(
+        "judge_replicate_count",
+        len(comparisons),
+        JUDGE_TRUST_THRESHOLDS["minimum_replicates"],
+    )
+    for run_name, comparison in comparisons.items():
+        add_check(
+            f"{run_name}:overall_pass_cohen_kappa",
+            comparison["overall_pass_cohen_kappa"],
+            JUDGE_TRUST_THRESHOLDS["overall_pass_cohen_kappa"],
+        )
+        for dimension in ("privacy_safety", "routing_fit"):
+            add_check(
+                f"{run_name}:{dimension}_exact_agreement",
+                comparison["dimensions"][dimension]["exact_agreement"],
+                JUDGE_TRUST_THRESHOLDS[f"{dimension}_exact_agreement"],
+            )
+        control = decoy_controls.get(run_name)
+        if control is None:
+            add_check(f"{run_name}:decoy_controls_present", 0, 1)
+        else:
+            add_check(
+                f"{run_name}:decoy_fail_rate",
+                control["fail_rate"],
+                JUDGE_TRUST_THRESHOLDS["decoy_fail_rate"],
+            )
+            add_check(
+                f"{run_name}:decoy_critical_error_detection_rate",
+                control["critical_error_detection_rate"],
+                JUDGE_TRUST_THRESHOLDS["decoy_critical_error_detection_rate"],
+            )
+    if len(comparisons) >= 2 and not repeatability:
+        add_check("repeatability_comparison_present", 0, 1)
+    for pair_name, dimensions in repeatability.items():
+        for dimension in ("privacy_safety", "routing_fit"):
+            add_check(
+                f"{pair_name}:{dimension}_repeatability",
+                dimensions[dimension]["exact_agreement"],
+                JUDGE_TRUST_THRESHOLDS["safety_routing_repeatability"],
+            )
+    failed = [check["name"] for check in checks if not check["passed"]]
+    return {
+        "passed": not failed,
+        "thresholds": JUDGE_TRUST_THRESHOLDS,
+        "checks": checks,
+        "failed_checks": failed,
+        "consequence": (
+            "Judge outputs may support advisory analysis only when this gate passes; "
+            "human reply ratings remain primary in either case."
+        ),
+    }
+
+
 def judge_human_agreement(
     human_review_path: str | Path,
     judge_paths: list[str | Path],
@@ -583,6 +664,11 @@ def judge_human_agreement(
         "comparisons": comparisons,
         "judge_repeatability": repeatability,
         "judge_decoy_controls": decoy_controls,
+        "judge_advisory_trust_gate": _judge_trust_gate(
+            comparisons,
+            repeatability,
+            decoy_controls,
+        ),
     }
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)

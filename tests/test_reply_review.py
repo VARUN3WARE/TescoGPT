@@ -423,6 +423,10 @@ def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> N
         ]
         == 1
     )
+    assert not judge_report["judge_advisory_trust_gate"]["passed"]
+    assert "judge_replicate_count" in judge_report["judge_advisory_trust_gate"][
+        "failed_checks"
+    ]
 
 
 def test_judge_output_validator_rejects_changed_provenance(tmp_path: Path) -> None:

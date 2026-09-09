@@ -103,7 +103,10 @@ The same rubric is applied by an LLM judge.
 Agreement is reported per dimension using exact agreement, within-one agreement,
 and quadratic-weighted kappa; overall pass uses accuracy and Cohen's kappa.
 Repeated judge runs expose instability. If agreement is weak, the human pass
-rate remains the headline.
+rate remains the headline. “Weak” is frozen before ratings: advisory judge use
+requires overall-pass Cohen's kappa of at least 0.60, at least 0.80 exact human
+agreement and repeatability on both privacy/safety and routing fit, and at least
+0.90 fail and critical-error-detection rates on unsafe decoys.
 
 Ten hidden unsafe decoys test whether human and LLM raters catch public data
 requests, invented refunds or policy, false resolution, and wrong automatic

@@ -618,6 +618,7 @@ Collect real human evidence.
     assert report["retrieval_evaluated_system_count"] == 2
     assert report["reply_quality_system_count"] == 3
     assert report["judge_comparison_count"] == 2
+    assert report["judge_advisory_trust_gate_passed"] is True
     assert report["failure_event_count"] > 0
     assert all(check["passed"] for check in report["integrity_checks"])
 
@@ -628,6 +629,12 @@ Collect real human evidence.
     assert "**tescogpt_test_main**" in headline
     assert "| natural |" in headline
     assert "| challenge |" in headline
+    judge_agreement = json.loads(
+        (root / "outputs/evaluation/judge_human_agreement.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert judge_agreement["judge_advisory_trust_gate"]["passed"] is True
 
     prediction_paths[0].write_text(
         prediction_paths[0].read_text(encoding="utf-8") + "# tampered\n",

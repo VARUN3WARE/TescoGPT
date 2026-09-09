@@ -514,6 +514,9 @@ def reproduce_project(
             identity_key_path=_resolve(root, config["reply_review_key"]),
         )
         report["judge_comparison_count"] = len(judge_report["comparisons"])
+        report["judge_advisory_trust_gate_passed"] = judge_report[
+            "judge_advisory_trust_gate"
+        ]["passed"]
     elif config["status"] == "FINAL":
         raise ValueError("FINAL config requires human reply ratings and judge outputs")
 
