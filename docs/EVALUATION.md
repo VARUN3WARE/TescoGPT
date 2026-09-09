@@ -31,6 +31,15 @@ It is diagnostic; choosing a test-set point after seeing the curve would be
 test-set tuning. `automation_score` is a ranking score, not a calibrated
 probability.
 
+## Decision reason
+
+The handling decision and its reason are evaluated separately. Reason reporting
+includes exact accuracy, accuracy conditional on the auto/escalate route being
+correct, and every gold-versus-predicted reason confusion. The evaluator rejects
+unknown reasons and reason codes incompatible with the proposed route. Exact
+agreement is intentionally strict; the failure analysis must inspect plausible
+alternative reasons rather than treating all mismatches as equally harmful.
+
 ## Static reply checks
 
 The label-free audit searches for a deliberately narrow list of observable

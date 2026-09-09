@@ -11,7 +11,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from tescogpt.evaluation.labels import INTENT_LABELS, validate_annotations
+from tescogpt.evaluation.labels import (
+    AUTO_REASON_CODES,
+    ESCALATION_REASON_CODES,
+    INTENT_LABELS,
+    validate_annotations,
+)
 from tescogpt.policy.safety import inspect_reply
 
 
@@ -124,6 +129,33 @@ def routing_metrics(frame: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+def decision_reason_metrics(frame: pd.DataFrame) -> dict[str, Any]:
+    """Measure the stated operational reason without hiding route errors."""
+    correct = frame["reason_code"].eq(frame["decision_reason"])
+    handling_correct = frame["handling_label"].eq(frame["handling_decision"])
+    confusions = (
+        frame.loc[~correct]
+        .groupby(["reason_code", "decision_reason"], sort=True)
+        .size()
+        .reset_index(name="count")
+        .sort_values(
+            ["count", "reason_code", "decision_reason"],
+            ascending=[False, True, True],
+            kind="stable",
+        )
+    )
+    return {
+        "exact_accuracy": float(correct.mean()),
+        "correct_count": int(correct.sum()),
+        "accuracy_given_correct_handling": _safe_divide(
+            int((correct & handling_correct).sum()),
+            int(handling_correct.sum()),
+        ),
+        "correct_handling_count": int(handling_correct.sum()),
+        "confusions": confusions.to_dict(orient="records"),
+    }
+
+
 def risk_coverage_curve(frame: pd.DataFrame) -> list[dict[str, Any]]:
     """Rank by automation score and show risk if the top share were automated."""
     ordered = frame.sort_values(
@@ -176,6 +208,7 @@ def _evaluate_slice(
         "example_count": len(frame),
         "intent": intents,
         "routing": routing_metrics(frame),
+        "decision_reason": decision_reason_metrics(frame),
         "static_reply_warning_count": int(static_flags.map(bool).sum()),
         "risk_coverage_curve": risk_coverage_curve(frame),
     }
@@ -211,6 +244,7 @@ def evaluate_predictions(
             "predicted_intent",
             "draft_reply",
             "handling_decision",
+            "decision_reason",
             "automation_score",
         }
         missing = sorted(required - set(predictions.columns))
@@ -233,6 +267,19 @@ def evaluate_predictions(
         )
         if invalid_handling:
             raise ValueError("Unknown handling decisions: " + ", ".join(invalid_handling))
+        allowed_reasons = set(AUTO_REASON_CODES) | set(ESCALATION_REASON_CODES)
+        invalid_reasons = sorted(set(predictions["decision_reason"]) - allowed_reasons)
+        if invalid_reasons:
+            raise ValueError("Unknown decision reasons: " + ", ".join(invalid_reasons))
+        incompatible_reasons = (
+            predictions["handling_decision"].eq("AUTO_HANDLE")
+            & ~predictions["decision_reason"].isin(AUTO_REASON_CODES)
+        ) | (
+            predictions["handling_decision"].eq("ESCALATE")
+            & ~predictions["decision_reason"].isin(ESCALATION_REASON_CODES)
+        )
+        if incompatible_reasons.any():
+            raise ValueError("Decision reasons must be compatible with handling decisions")
         if not predictions["automation_score"].between(0, 1).all():
             raise ValueError("Automation scores must be between zero and one")
         if predictions["draft_reply"].str.strip().eq("").any():

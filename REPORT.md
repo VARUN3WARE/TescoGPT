@@ -83,7 +83,8 @@ taxonomy, every per-intent error count, and a 2,000-resample interval. Routing
 reports coverage, unsafe automatic handling, needless escalation, and a
 one-sided 95% Wilson upper bound on unsafe-auto risk. The entire score-ranked
 risk–coverage curve is retained; selecting a test-set point after seeing that
-curve is prohibited.
+curve is prohibited. Stated reasons are reported separately using exact accuracy,
+accuracy conditional on a correct route, and a complete reason-confusion table.
 
 Reply quality uses a six-dimension, system-blinded human rubric: issue
 understanding, helpfulness/actionability, evidence grounding, tone/empathy,

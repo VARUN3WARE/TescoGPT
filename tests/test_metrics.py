@@ -7,6 +7,7 @@ import pytest
 
 from tescogpt.evaluation.labels import LABEL_COLUMNS
 from tescogpt.evaluation.metrics import (
+    decision_reason_metrics,
     evaluate_predictions,
     intent_metrics,
     risk_coverage_curve,
@@ -45,6 +46,37 @@ def test_routing_reports_coverage_and_both_error_directions() -> None:
     assert result["handling_accuracy"] == 0.5
     assert wilson_upper(0, 10) > 0
     assert wilson_upper(0, 0) is None
+
+
+def test_decision_reason_metrics_keep_route_and_reason_separate() -> None:
+    frame = pd.DataFrame(
+        {
+            "handling_label": ["ESCALATE", "ESCALATE", "AUTO_HANDLE"],
+            "handling_decision": ["ESCALATE", "ESCALATE", "AUTO_HANDLE"],
+            "reason_code": [
+                "ACCOUNT_OR_ORDER_LOOKUP",
+                "MONEY_OR_COMMITMENT",
+                "NO_ACTION_NEEDED",
+            ],
+            "decision_reason": [
+                "ACCOUNT_OR_ORDER_LOOKUP",
+                "HUMAN_JUDGMENT_REQUIRED",
+                "NO_ACTION_NEEDED",
+            ],
+        }
+    )
+
+    result = decision_reason_metrics(frame)
+
+    assert result["exact_accuracy"] == pytest.approx(2 / 3)
+    assert result["accuracy_given_correct_handling"] == pytest.approx(2 / 3)
+    assert result["confusions"] == [
+        {
+            "reason_code": "MONEY_OR_COMMITMENT",
+            "decision_reason": "HUMAN_JUDGMENT_REQUIRED",
+            "count": 1,
+        }
+    ]
 
 
 def test_risk_coverage_uses_score_ranking() -> None:
@@ -127,6 +159,7 @@ def test_complete_evaluation_and_static_audit_write_artifacts(tmp_path: Path) ->
                 "predicted_intent": "delivery_or_collection",
                 "draft_reply": "DM your order number.",
                 "handling_decision": "ESCALATE",
+                "decision_reason": "ACCOUNT_OR_ORDER_LOOKUP",
                 "automation_score": 0.1,
             },
             {
@@ -135,6 +168,7 @@ def test_complete_evaluation_and_static_audit_write_artifacts(tmp_path: Path) ->
                 "predicted_intent": "feedback_praise_or_suggestion",
                 "draft_reply": "Thanks for your feedback.",
                 "handling_decision": "AUTO_HANDLE",
+                "decision_reason": "NO_ACTION_NEEDED",
                 "automation_score": 0.9,
             },
         ]
@@ -154,6 +188,12 @@ def test_complete_evaluation_and_static_audit_write_artifacts(tmp_path: Path) ->
     )
 
     assert metrics["systems"]["test-system"]["slices"]["all"]["intent"]["accuracy"] == 1
+    assert (
+        metrics["systems"]["test-system"]["slices"]["all"]["decision_reason"][
+            "exact_accuracy"
+        ]
+        == 1
+    )
     assert safety["systems"]["test-system"]["flagged_draft_count"] == 1
     assert (tmp_path / "metrics.json").is_file()
     assert (tmp_path / "details" / "predictions_static_safety.csv").is_file()

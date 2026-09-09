@@ -91,6 +91,7 @@ Planned primary measures:
 
 - intent macro-F1 with bootstrap confidence intervals;
 - unsafe auto-handle rate and its confidence bound;
+- exact decision-reason accuracy and reason-confusion counts;
 - automation coverage at a fixed safety target;
 - risk–coverage curve and cost-sensitive routing utility;
 - human all-critical-dimensions reply pass rate with a Wilson interval;
