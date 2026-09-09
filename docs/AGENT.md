@@ -34,7 +34,9 @@ LLM result.
 The final prediction manifest records instruction and schema hashes, every case
 request hash, cache-hit status, response ID, resolved response model, and token
 usage. Cache records with mismatched provenance or invalid result fields are
-rejected rather than silently reused.
+rejected rather than silently reused. Offline validation also reconciles unique
+request, cache-hit, and API-call counts against the per-case traces and rejects
+missing or inconsistent resolved-model lineage.
 
 Generation-time validation is repeated during offline reproduction. Every CSV
 row is reconstructed as the shared `AgentOutput` contract, its case IDs must

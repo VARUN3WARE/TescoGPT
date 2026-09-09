@@ -364,17 +364,50 @@ Collect real human evidence.
         prediction_rows[system] = rows
         path = _write_csv(root / f"outputs/predictions/{system}.csv", rows)
         prediction_paths.append(path)
+        prediction_manifest: dict[str, object] = {
+            "prediction_schema_version": 2,
+            "system": system,
+            "input_file": registry.name,
+            "input_sha256": _sha256(registry),
+            "prediction_file": path.name,
+            "prediction_sha256": _sha256(path),
+            "row_count": len(rows),
+        }
+        if system == "tescogpt_test_main":
+            model = "synthetic-main-model"
+            request_traces = [
+                {
+                    "case_id": row["case_id"],
+                    "request_sha256": hashlib.sha256(
+                        f"{model}:{row['case_id']}".encode()
+                    ).hexdigest(),
+                    "cache_hit": False,
+                    "response_id": f"response-{row['case_id']}",
+                    "response_model": "synthetic-main-model-2026-09-01",
+                    "usage": {},
+                }
+                for row in rows
+            ]
+            prediction_manifest.update(
+                {
+                    "model": model,
+                    "generation_provenance": {
+                        "provider": "openai",
+                        "requested_model": model,
+                        "resolved_models": ["synthetic-main-model-2026-09-01"],
+                        "instructions_sha256": "a" * 64,
+                        "schema_sha256": "b" * 64,
+                        "request_count": len(rows),
+                        "unique_request_count": len(rows),
+                        "api_call_count": len(rows),
+                        "cache_hit_count": 0,
+                        "requests": request_traces,
+                    },
+                }
+            )
         _write_json(
             path.with_suffix(".csv.manifest.json"),
-            {
-                "prediction_schema_version": 2,
-                "system": system,
-                "input_file": registry.name,
-                "input_sha256": _sha256(registry),
-                "prediction_file": path.name,
-                "prediction_sha256": _sha256(path),
-                "row_count": len(rows),
-            },
+            prediction_manifest,
         )
 
     retrieval = _write_csv(
@@ -490,15 +523,41 @@ Collect real human evidence.
             _judge_rows(reply_rows, replicate=replicate),
         )
         judge_paths.append(judge_path)
+        judge_requests = [
+            {
+                "review_id": row["review_id"],
+                "request_sha256": hashlib.sha256(
+                    f"judge:{replicate}:{row['review_id']}".encode()
+                ).hexdigest(),
+                "cache_hit": False,
+                "response_id": f"judge-response-{replicate}-{row['review_id']}",
+                "response_model": "synthetic-judge-v1-resolved",
+                "usage": {},
+            }
+            for row in reply_rows
+        ]
         _write_json(
             judge_path.with_suffix(".csv.manifest.json"),
             {
-                "judge_output_schema_version": 1,
+                "judge_output_schema_version": 2,
                 "output_sha256": _sha256(judge_path),
                 "review_sha256": _sha256(reply_review),
                 "model": "synthetic-judge-v1",
                 "replicate": replicate,
                 "row_count": len(reply_rows),
+                "judge_provenance": {
+                    "provider": "openai",
+                    "requested_model": "synthetic-judge-v1",
+                    "resolved_models": ["synthetic-judge-v1-resolved"],
+                    "replicate": replicate,
+                    "instructions_sha256": "c" * 64,
+                    "schema_sha256": "d" * 64,
+                    "request_count": len(reply_rows),
+                    "unique_request_count": len(reply_rows),
+                    "api_call_count": len(reply_rows),
+                    "cache_hit_count": 0,
+                    "requests": judge_requests,
+                },
             },
         )
 

@@ -106,6 +106,17 @@ def _validate_generation_provenance(
             raise ValueError(f"API prediction lacks response lineage: {path}")
         if not isinstance(request.get("cache_hit"), bool):
             raise ValueError(f"API prediction cache status is invalid: {path}")
+    request_hashes = {str(request["request_sha256"]) for request in requests}
+    if int(provenance.get("unique_request_count", -1)) != len(request_hashes):
+        raise ValueError(f"API prediction unique-request count is invalid: {path}")
+    cache_hits = sum(bool(request["cache_hit"]) for request in requests)
+    if int(provenance.get("cache_hit_count", -1)) != cache_hits:
+        raise ValueError(f"API prediction cache-hit count is invalid: {path}")
+    if int(provenance.get("api_call_count", -1)) != len(requests) - cache_hits:
+        raise ValueError(f"API prediction API-call count is invalid: {path}")
+    resolved_models = sorted({str(request["response_model"]) for request in requests})
+    if provenance.get("resolved_models") != resolved_models:
+        raise ValueError(f"API prediction resolved models are invalid: {path}")
 
 
 def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[str, Any]]:

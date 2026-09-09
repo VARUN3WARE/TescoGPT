@@ -154,10 +154,11 @@ aggregate, and enforces the 15-minute limit. See
 `tests/test_reproduce_final.py` is the clean-room integration proof for that
 future state. It builds a tiny, explicitly synthetic FINAL experiment from
 scratch and exercises every evaluation branch: independent-label agreement,
-three systems, paired comparisons, retrieval relevance, blinded human reply
-ratings, two judge runs, failure evidence, artifact hashes, and the runtime
-gate. This proves the pipeline is wired end to end; it is not evidence that the
-Tesco agent is accurate before the real human labels are complete.
+three systems including an API-provenance main, paired comparisons, retrieval
+relevance, blinded human reply ratings, two schema-v2 judge runs, failure
+evidence, artifact hashes, and the runtime gate. This proves the pipeline is
+wired end to end; it is not evidence that the Tesco agent is accurate before
+the real human labels are complete.
 
 ### Current development command
 
