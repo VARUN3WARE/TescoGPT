@@ -9,7 +9,7 @@ import pytest
 
 from tescogpt.agent.intent import classify_intent
 from tescogpt.agent.schema import AgentOutput
-from tescogpt.baselines.simple import SimpleBaseline
+from tescogpt.baselines.simple import SimpleBaseline, route_case
 from tescogpt.baselines.trivial import TrivialBaseline
 from tescogpt.prediction import run_predictions, validate_prediction_artifact
 from tescogpt.retrieval.bm25 import BM25Index
@@ -110,6 +110,18 @@ def test_bm25_excludes_entire_conversation() -> None:
 def test_intent_priority_keeps_safety_above_refund() -> None:
     intent, _ = classify_intent("I need a refund because this chicken made me sick")
     assert intent == "product_quality_or_safety"
+
+
+def test_simple_store_rule_uses_human_judgment_without_distress() -> None:
+    handling, reason, flags = route_case(
+        "store_or_staff_experience",
+        "The queue in your shop was very long",
+    )
+
+    assert handling == "ESCALATE"
+    assert reason == "HUMAN_JUDGMENT_REQUIRED"
+    assert "repeated_failure" not in flags
+    assert "strong_distress" not in flags
 
 
 def test_prediction_runner_writes_rows_and_manifest(tmp_path: Path) -> None:

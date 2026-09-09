@@ -33,7 +33,7 @@ def route_case(intent: str, text: str) -> tuple[str, str, tuple[str, ...]]:
     if intent == "feedback_praise_or_suggestion":
         return "AUTO_HANDLE", "NO_ACTION_NEEDED", flags
     if intent == "store_or_staff_experience":
-        return "ESCALATE", "REPEATED_FAILURE_OR_DISTRESS", flags
+        return "ESCALATE", "HUMAN_JUDGMENT_REQUIRED", flags
     return "AUTO_HANDLE", "SAFE_CLARIFICATION", flags
 
 

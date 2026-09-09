@@ -23,6 +23,8 @@ but it provides none of the efficiency the system is meant to deliver.
   tie-break order;
 - uses explicit safety, order, money, live-information, and distress rules for
   handling;
+- routes subjective store/staff cases to human judgment rather than inventing a
+  repeated-failure signal;
 - retrieves one lexically similar historical customer case with BM25; and
 - copies that case's historical Tesco reply as its draft.
 
