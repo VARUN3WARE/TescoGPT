@@ -318,6 +318,97 @@ def _assert_context_unchanged(
         )
 
 
+def validate_annotation_artifacts(
+    candidates_path: str | Path,
+    round_one_path: str | Path,
+    round_two_path: str | Path,
+    manifest_path: str | Path,
+    *,
+    expected_gold_count: int,
+    expected_overlap_count: int,
+    final_path: str | Path | None = None,
+) -> dict[str, Any]:
+    """Revalidate preregistered sample sizes, identities, context, and independence."""
+    if expected_gold_count <= 0 or expected_overlap_count <= 0:
+        raise ValueError("Expected annotation sample sizes must be positive")
+    if expected_overlap_count > expected_gold_count:
+        raise ValueError("Expected overlap cannot exceed the golden-set size")
+
+    candidates_file = Path(candidates_path)
+    round_one_file = Path(round_one_path)
+    round_two_file = Path(round_two_path)
+    manifest_file = Path(manifest_path)
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+    status = str(manifest.get("label_status", ""))
+    require_complete = status in {
+        "HUMAN_LABELED_UNADJUDICATED",
+        "HUMAN_LABELED_ADJUDICATED",
+    }
+    validate_annotations(round_one_file, require_complete=require_complete, require_blind=True)
+    validate_annotations(round_two_file, require_complete=require_complete, require_blind=True)
+    candidates = pd.read_csv(candidates_file, dtype="string", keep_default_na=False)
+    round_one = pd.read_csv(round_one_file, dtype="string", keep_default_na=False)
+    round_two = pd.read_csv(round_two_file, dtype="string", keep_default_na=False)
+
+    if len(candidates) != expected_gold_count or len(round_one) != expected_gold_count:
+        raise ValueError("Golden annotation count differs from the preregistered size")
+    if len(round_two) != expected_overlap_count:
+        raise ValueError("Independent overlap count differs from the preregistered size")
+    manifest_counts = {
+        "round_one_count": expected_gold_count,
+        "round_two_count": expected_overlap_count,
+    }
+    for field, expected in manifest_counts.items():
+        if int(manifest.get(field, -1)) != expected:
+            raise ValueError(f"Annotation manifest {field} differs from the preregistration")
+    if manifest.get("candidate_sha256") != _sha256(candidates_file):
+        raise ValueError("Annotation manifest points to a different candidate registry")
+    if manifest.get("round_one_sha256") != _sha256(round_one_file):
+        raise ValueError("Round-one annotations differ from their manifest")
+    if manifest.get("round_two_sha256") != _sha256(round_two_file):
+        raise ValueError("Round-two annotations differ from their manifest")
+    if set(round_one["case_id"]) != set(candidates["case_id"]):
+        raise ValueError("Round one case IDs must exactly match the frozen candidates")
+    expected_round_two_ids = set(manifest.get("round_two_case_ids", []))
+    if set(round_two["case_id"]) != expected_round_two_ids:
+        raise ValueError("Round two case IDs differ from the frozen overlap")
+    _assert_context_unchanged(round_one, candidates, round_name="Round one")
+    _assert_context_unchanged(round_two, candidates, round_name="Round two")
+
+    if require_complete:
+        first_annotators = set(_values(round_one["annotator_id"])) - {""}
+        second_annotators = set(_values(round_two["annotator_id"])) - {""}
+        overlap = sorted(first_annotators & second_annotators)
+        if overlap:
+            raise ValueError("Independent rounds share annotator IDs: " + ", ".join(overlap))
+        expected_first = set(manifest.get("round_one_annotator_ids", first_annotators))
+        expected_second = set(manifest.get("round_two_annotator_ids", second_annotators))
+        if first_annotators != expected_first or second_annotators != expected_second:
+            raise ValueError("Annotation manifest annotator IDs differ from the label files")
+
+    if status == "HUMAN_LABELED_ADJUDICATED":
+        if final_path is None:
+            raise ValueError("Adjudicated annotations require a distinct final artifact")
+        final_file = Path(final_path)
+        validate_annotations(final_file, require_complete=True, require_blind=True)
+        final = pd.read_csv(final_file, dtype="string", keep_default_na=False)
+        if len(final) != expected_gold_count or set(final["case_id"]) != set(
+            candidates["case_id"]
+        ):
+            raise ValueError("Final annotations do not exactly cover the frozen candidates")
+        if manifest.get("final_sha256") != _sha256(final_file):
+            raise ValueError("Final annotations differ from their manifest")
+        _assert_context_unchanged(final, candidates, round_name="Final annotations")
+
+    return {
+        "label_status": status,
+        "gold_count": len(round_one),
+        "overlap_count": len(round_two),
+        "independent_annotators": require_complete,
+        "final_validated": status == "HUMAN_LABELED_ADJUDICATED",
+    }
+
+
 def freeze_human_annotations(
     candidates_path: str | Path,
     round_one_path: str | Path,

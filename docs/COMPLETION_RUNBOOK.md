@@ -139,3 +139,8 @@ finish in under 15 minutes before the repository is tagged or submitted.
 The synthetic FINAL-path regression in `tests/test_reproduce_final.py` must also
 remain green. It validates orchestration only; never cite its synthetic scores
 as project results.
+
+Do not change the `expected_*` counts in `config/experiment.json` to work around
+missing ratings. They are the preregistered denominators; a changed protocol
+requires an explicit decision-log entry and corresponding limitation in the
+report.

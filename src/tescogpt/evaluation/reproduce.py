@@ -13,12 +13,17 @@ import pandas as pd
 from tescogpt.evaluation.agreement import annotation_agreement
 from tescogpt.evaluation.failure_analysis import build_failure_evidence
 from tescogpt.evaluation.judge import judge_human_agreement, validate_judge_output
-from tescogpt.evaluation.labels import validate_annotations
+from tescogpt.evaluation.labels import validate_annotation_artifacts, validate_annotations
 from tescogpt.evaluation.metrics import evaluate_predictions
-from tescogpt.evaluation.reply_review import evaluate_reply_quality, validate_reply_ratings
+from tescogpt.evaluation.reply_review import (
+    evaluate_reply_quality,
+    validate_reply_ratings,
+    validate_reply_review_key,
+)
 from tescogpt.evaluation.retrieval_review import (
     evaluate_retrieval_review,
     validate_retrieval_review,
+    validate_retrieval_review_key,
 )
 from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.prediction import validate_prediction_artifact
@@ -147,6 +152,19 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
             path=gold_path,
             expected=annotation_manifest.get("final_sha256"),
         )
+    validate_annotation_artifacts(
+        registry_path,
+        round_one_path,
+        _resolve(root, config["second_annotation_file"]),
+        _resolve(root, config["annotation_manifest"]),
+        expected_gold_count=int(config["expected_gold_count"]),
+        expected_overlap_count=int(config["expected_overlap_count"]),
+        final_path=(
+            gold_path
+            if annotation_manifest.get("label_status") == "HUMAN_LABELED_ADJUDICATED"
+            else None
+        ),
+    )
 
     registry_hash = _sha256(registry_path)
     for prediction_value in config["prediction_files"]:
@@ -216,6 +234,23 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
         relevance_review_path,
         require_complete=relevance_manifest.get("label_status") == "HUMAN_LABELED",
     )
+    relevance_review = pd.read_csv(
+        relevance_review_path, dtype="string", keep_default_na=False
+    )
+    relevance_key = pd.read_csv(relevance_key_path, dtype="string", keep_default_na=False)
+    validate_retrieval_review_key(
+        relevance_review,
+        relevance_key,
+        top_k=int(relevance_manifest["top_k"]),
+    )
+    if relevance_review["query_case_id"].nunique() != int(
+        config["expected_retrieval_query_count"]
+    ):
+        raise ValueError("Retrieval-review query count differs from the preregistration")
+    if int(relevance_manifest.get("query_count", -1)) != int(
+        config["expected_retrieval_query_count"]
+    ):
+        raise ValueError("Retrieval-review manifest count differs from the preregistration")
 
     reply_review_value = config.get("reply_review_file")
     if reply_review_value:
@@ -246,6 +281,21 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
             reply_review_path,
             require_complete=reply_manifest.get("label_status") == "HUMAN_RATED",
         )
+        reply_review = pd.read_csv(reply_review_path, dtype="string", keep_default_na=False)
+        reply_key = pd.read_csv(reply_key_path, dtype="string", keep_default_na=False)
+        validate_reply_review_key(reply_review, reply_key)
+        compared = reply_key.loc[reply_key["row_role"].eq("compared")]
+        controls = reply_key.loc[reply_key["row_role"].eq("control")]
+        if compared["case_id"].nunique() != int(config["expected_reply_review_case_count"]):
+            raise ValueError("Reply-review case count differs from the preregistration")
+        if len(controls) != int(config["expected_reply_control_count"]):
+            raise ValueError("Reply-review control count differs from the preregistration")
+        if int(reply_manifest.get("case_count", -1)) != int(
+            config["expected_reply_review_case_count"]
+        ) or int(reply_manifest.get("control_count", -1)) != int(
+            config["expected_reply_control_count"]
+        ):
+            raise ValueError("Reply-review manifest counts differ from the preregistration")
 
     judge_outputs = config.get("judge_output_files", [])
     if judge_outputs:

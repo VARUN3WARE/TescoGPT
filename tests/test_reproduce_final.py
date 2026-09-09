@@ -294,6 +294,10 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
         {
             "case_id": f"case-{index}",
             "conversation_id": f"conversation-{index}",
+            "tweet_id": f"tweet-{index}",
+            "created_at": f"2017-01-0{index}T00:00:00Z",
+            "message": annotations[index - 1]["message"],
+            "prior_context": "",
             "sample_slice": sample_slice,
         }
         for index, sample_slice in enumerate(("natural", "natural", "challenge", "challenge"), 1)
@@ -310,7 +314,11 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
         root / "data/golden/annotations.manifest.json",
         {
             "label_status": "HUMAN_LABELED_ADJUDICATED",
+            "candidate_sha256": _sha256(registry),
+            "round_one_count": 4,
             "round_one_sha256": _sha256(round_one),
+            "round_two_count": 2,
+            "round_two_case_ids": ["case-1", "case-2"],
             "round_two_sha256": _sha256(round_two),
             "final_sha256": _sha256(gold),
         },
@@ -420,6 +428,7 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
         root / "data/review/retrieval_review.manifest.json",
         {
             "label_status": "HUMAN_LABELED",
+            "query_count": 2,
             "top_k": 1,
             "review_sha256": _sha256(retrieval_review),
             "identity_key_sha256": _sha256(retrieval_key),
@@ -435,6 +444,7 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
         root / "data/review/reply_review.manifest.json",
         {
             "label_status": "HUMAN_RATED",
+            "case_count": 2,
             "system_count": 3,
             "control_count": 1,
             "review_sha256": _sha256(reply_review),
@@ -466,6 +476,11 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
     config = {
         "experiment_schema_version": 1,
         "status": "FINAL",
+        "expected_gold_count": 4,
+        "expected_overlap_count": 2,
+        "expected_retrieval_query_count": 2,
+        "expected_reply_review_case_count": 2,
+        "expected_reply_control_count": 1,
         "gold_file": "data/golden/final.csv",
         "round_one_annotation_file": "data/golden/round1.csv",
         "second_annotation_file": "data/golden/round2.csv",

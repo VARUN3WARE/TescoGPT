@@ -1,6 +1,11 @@
 {
   "experiment_schema_version": 1,
   "status": "AWAITING_HUMAN_LABELS",
+  "expected_gold_count": 200,
+  "expected_overlap_count": 60,
+  "expected_retrieval_query_count": 25,
+  "expected_reply_review_case_count": 30,
+  "expected_reply_control_count": 10,
   "gold_file": "data/golden/round1_annotations.csv",
   "round_one_annotation_file": "data/golden/round1_annotations.csv",
   "second_annotation_file": "data/golden/round2_annotations.csv",

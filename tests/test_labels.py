@@ -9,6 +9,7 @@ from tescogpt.evaluation.labels import (
     LABEL_COLUMNS,
     freeze_human_annotations,
     initialize_annotation_rounds,
+    validate_annotation_artifacts,
     validate_annotations,
 )
 
@@ -166,6 +167,24 @@ def test_freezes_independent_labels_and_rejects_context_edits(tmp_path: Path) ->
     assert frozen["label_status"] == "HUMAN_LABELED_UNADJUDICATED"
     assert frozen["round_one_annotator_ids"] == ["human_a"]
     assert frozen["round_two_annotator_ids"] == ["human_b"]
+    artifact_status = validate_annotation_artifacts(
+        candidates,
+        round_one,
+        round_two,
+        manifest,
+        expected_gold_count=4,
+        expected_overlap_count=3,
+    )
+    assert artifact_status["independent_annotators"] is True
+    with pytest.raises(ValueError, match="overlap count differs"):
+        validate_annotation_artifacts(
+            candidates,
+            round_one,
+            round_two,
+            manifest,
+            expected_gold_count=4,
+            expected_overlap_count=4,
+        )
 
     changed = pd.read_csv(round_two)
     changed.loc[0, "message"] = "edited after sampling"

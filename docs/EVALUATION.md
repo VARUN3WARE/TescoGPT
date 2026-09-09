@@ -6,6 +6,12 @@ prediction IDs to match the 200 gold IDs exactly. Headline metrics use the
 distinct `final_annotations.csv`; agreement always uses the untouched first and
 second annotation rounds.
 
+The experiment config independently pins all human-evidence denominators: 200
+gold cases, 60 independently double-labelled cases, 25 retrieval-review queries,
+30 reply-review cases, and 10 unsafe controls. Reproduction checks these values
+against the CSVs, identity keys, and manifests, so regenerating internally
+consistent hashes around a smaller sample does not satisfy the protocol.
+
 ## Intent
 
 - accuracy;
