@@ -70,3 +70,17 @@ python -m tescogpt evaluate \
 
 The final run will replace `main_template.csv` with the frozen API-backed main
 system if that experiment is completed.
+
+## Reply quality and judge validity
+
+After golden labels and final system outputs are frozen, `reply-review-init`
+selects 30 stratified cases and places every compared system's draft into a
+randomized, system-blinded 90-row human review. The identity key is written to a
+separate file. The six-dimension scale, critical-error tags, pass rule, and
+judge-agreement statistics are frozen in
+[the reply-quality rubric](JUDGE_RUBRIC.md).
+
+`annotation-agreement` reports Cohen's kappa for intent, handling, and reason on
+the independent 60-case overlap. `judge-agreement` reports exact agreement,
+within-one agreement, and quadratic-weighted kappa for every reply dimension,
+plus overall-pass kappa and pairwise repeatability across judge runs.

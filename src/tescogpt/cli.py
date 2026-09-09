@@ -9,8 +9,14 @@ from pathlib import Path
 
 from tescogpt.data.audit import audit_conversations
 from tescogpt.data.threads import extract_brand_conversations
+from tescogpt.evaluation.agreement import annotation_agreement
+from tescogpt.evaluation.judge import judge_human_agreement, judge_review_sheet
 from tescogpt.evaluation.labels import initialize_annotation_rounds, validate_annotations
 from tescogpt.evaluation.metrics import evaluate_predictions
+from tescogpt.evaluation.reply_review import (
+    initialize_reply_review,
+    validate_reply_ratings,
+)
 from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.evaluation.sampling import sample_golden_candidates
 from tescogpt.prediction import run_predictions
@@ -236,6 +242,76 @@ def _build_parser() -> argparse.ArgumentParser:
         default=Path("outputs/evaluation/static_safety"),
     )
 
+    annotation_agree = subparsers.add_parser(
+        "annotation-agreement",
+        help="Measure independent human agreement before adjudication.",
+    )
+    annotation_agree.add_argument(
+        "--round-one", type=Path, default=Path("data/golden/round1_annotations.csv")
+    )
+    annotation_agree.add_argument(
+        "--round-two", type=Path, default=Path("data/golden/round2_annotations.csv")
+    )
+    annotation_agree.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/evaluation/annotation_agreement.json"),
+    )
+
+    review_init = subparsers.add_parser(
+        "reply-review-init",
+        help="Create a system-blinded human reply-quality review packet.",
+    )
+    review_init.add_argument("--gold", type=Path, required=True)
+    review_init.add_argument(
+        "--registry", type=Path, default=Path("data/golden/golden_candidates.csv")
+    )
+    review_init.add_argument("--predictions", type=Path, nargs="+", required=True)
+    review_init.add_argument(
+        "--review", type=Path, default=Path("data/review/reply_review.csv")
+    )
+    review_init.add_argument(
+        "--identity-key", type=Path, default=Path("data/review/reply_review_key.csv")
+    )
+    review_init.add_argument(
+        "--manifest", type=Path, default=Path("data/review/reply_review.manifest.json")
+    )
+    review_init.add_argument("--case-count", type=int, default=30)
+    review_init.add_argument("--seed", type=int, default=20260912)
+
+    review_check = subparsers.add_parser(
+        "reply-ratings-check",
+        help="Validate a human reply-quality review sheet.",
+    )
+    review_check.add_argument("--input", type=Path, required=True)
+    review_check.add_argument("--require-complete", action="store_true")
+
+    judge_review = subparsers.add_parser(
+        "judge-review",
+        help="Run a structured LLM judge over a blinded review packet.",
+    )
+    judge_review.add_argument("--review", type=Path, required=True)
+    judge_review.add_argument("--output", type=Path, required=True)
+    judge_review.add_argument("--model", required=True)
+    judge_review.add_argument(
+        "--cache-dir",
+        type=Path,
+        default=Path("artifacts/cache/judge"),
+    )
+    judge_review.add_argument("--replicate", type=int, default=1)
+
+    judge_agree = subparsers.add_parser(
+        "judge-agreement",
+        help="Compare one or more judge runs with frozen human reply ratings.",
+    )
+    judge_agree.add_argument("--human-review", type=Path, required=True)
+    judge_agree.add_argument("--judge-outputs", type=Path, nargs="+", required=True)
+    judge_agree.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/evaluation/judge_human_agreement.json"),
+    )
+
     return parser
 
 
@@ -335,6 +411,57 @@ def main(argv: Sequence[str] | None = None) -> None:
             prediction_paths=args.predictions,
             output_path=args.output,
             details_directory=args.details_directory,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.command == "annotation-agreement":
+        report = annotation_agreement(
+            args.round_one,
+            args.round_two,
+            args.output,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.command == "reply-review-init":
+        manifest = initialize_reply_review(
+            gold_path=args.gold,
+            registry_path=args.registry,
+            prediction_paths=args.predictions,
+            review_path=args.review,
+            key_path=args.identity_key,
+            manifest_path=args.manifest,
+            case_count=args.case_count,
+            seed=args.seed,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "reply-ratings-check":
+        progress = validate_reply_ratings(
+            args.input,
+            require_complete=args.require_complete,
+        )
+        print(json.dumps(progress, indent=2, sort_keys=True))
+        return
+
+    if args.command == "judge-review":
+        manifest = judge_review_sheet(
+            review_path=args.review,
+            output_path=args.output,
+            model=args.model,
+            cache_dir=args.cache_dir,
+            replicate=args.replicate,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "judge-agreement":
+        report = judge_human_agreement(
+            human_review_path=args.human_review,
+            judge_paths=args.judge_outputs,
+            output_path=args.output,
         )
         print(json.dumps(report, indent=2, sort_keys=True))
         return

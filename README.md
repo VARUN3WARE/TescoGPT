@@ -87,11 +87,13 @@ Planned primary measures:
 - human all-critical-dimensions reply pass rate;
 - pairwise reply win/tie/loss against baselines;
 - retrieval Recall@k/nDCG on human relevance labels; and
-- judge–human agreement, position consistency, and repeatability.
+- judge–human agreement per dimension, repeatability, and disagreement analysis.
 
 Metric definitions and the currently runnable label-free safety audit are in
 [the evaluation protocol](docs/EVALUATION.md). Human-dependent metrics are coded
 but intentionally fail while the annotation sheets are incomplete.
+The [reply-quality rubric](docs/JUDGE_RUBRIC.md) freezes the blinded human review
+and LLM-judge validation procedure before either set of ratings exists.
 
 ## Baselines
 
