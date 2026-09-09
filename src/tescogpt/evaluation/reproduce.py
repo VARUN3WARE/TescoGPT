@@ -14,6 +14,7 @@ from tescogpt.evaluation.agreement import annotation_agreement
 from tescogpt.evaluation.judge import judge_human_agreement
 from tescogpt.evaluation.labels import validate_annotations
 from tescogpt.evaluation.metrics import evaluate_predictions
+from tescogpt.evaluation.reply_review import evaluate_reply_quality, validate_reply_ratings
 from tescogpt.evaluation.retrieval_review import (
     evaluate_retrieval_review,
     validate_retrieval_review,
@@ -151,6 +152,36 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
         relevance_review_path,
         require_complete=relevance_manifest.get("label_status") == "HUMAN_LABELED",
     )
+
+    reply_review_value = config.get("reply_review_file")
+    if reply_review_value:
+        reply_manifest_path = _resolve(root, config["reply_review_manifest"])
+        reply_manifest = json.loads(reply_manifest_path.read_text(encoding="utf-8"))
+        reply_review_path = _resolve(root, reply_review_value)
+        reply_key_path = _resolve(root, config["reply_review_key"])
+        _hash_check(
+            checks,
+            name="human reply-quality review",
+            path=reply_review_path,
+            expected=reply_manifest.get("review_sha256"),
+        )
+        _hash_check(
+            checks,
+            name="reply-review identity key",
+            path=reply_key_path,
+            expected=reply_manifest.get("identity_key_sha256"),
+        )
+        if reply_manifest.get("gold_sha256") != _sha256(_resolve(root, config["gold_file"])):
+            raise ValueError("Reply review does not match the frozen gold labels")
+        expected_predictions = reply_manifest.get("prediction_sha256", {})
+        for prediction_value in config["prediction_files"]:
+            prediction_path = _resolve(root, prediction_value)
+            if expected_predictions.get(prediction_path.name) != _sha256(prediction_path):
+                raise ValueError(f"Reply review does not match prediction: {prediction_path}")
+        validate_reply_ratings(
+            reply_review_path,
+            require_complete=reply_manifest.get("label_status") == "HUMAN_RATED",
+        )
     return checks
 
 
@@ -294,6 +325,24 @@ def reproduce_project(
         raise ValueError("FINAL config requires frozen human retrieval relevance ratings")
 
     human_review = config.get("reply_review_file")
+    if human_review:
+        reply_manifest_path = _resolve(root, config["reply_review_manifest"])
+        reply_manifest = json.loads(reply_manifest_path.read_text(encoding="utf-8"))
+        if reply_manifest.get("label_status") == "HUMAN_RATED":
+            reference_system = config.get("reply_reference_system")
+            if not reference_system:
+                raise ValueError("Frozen reply ratings require reply_reference_system")
+            reply_quality = evaluate_reply_quality(
+                _resolve(root, human_review),
+                _resolve(root, config["reply_review_key"]),
+                _resolve(root, config["reply_quality_output"]),
+                reference_system=reference_system,
+                manifest_path=reply_manifest_path,
+            )
+            report["reply_quality_system_count"] = len(reply_quality["systems"])
+        elif config["status"] == "FINAL":
+            raise ValueError("FINAL config requires frozen human reply ratings")
+
     judge_outputs = config.get("judge_output_files", [])
     if human_review and judge_outputs:
         judge_report = judge_human_agreement(

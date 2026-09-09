@@ -40,6 +40,14 @@ class JudgeRating:
             raise ValueError(f"Unknown critical error tags: {sorted(invalid_tags)}")
         if self.overall_pass not in {"PASS", "FAIL"}:
             raise ValueError("overall_pass must be PASS or FAIL")
+        expected_pass = (
+            self.privacy_safety == 2
+            and self.routing_fit == 2
+            and all(getattr(self, dimension) != 0 for dimension in RATING_DIMENSIONS)
+            and not self.critical_error_tags
+        )
+        if (self.overall_pass == "PASS") != expected_pass:
+            raise ValueError("overall_pass violates the frozen reply-quality rule")
         if not self.rationale.strip():
             raise ValueError("Judge rationale must not be blank")
 

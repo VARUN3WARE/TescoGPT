@@ -87,11 +87,17 @@ curve is prohibited.
 
 Reply quality uses a six-dimension, system-blinded human rubric: issue
 understanding, helpfulness/actionability, evidence grounding, tone/empathy,
-privacy/safety, and routing fit. The same rubric is applied by an LLM judge.
+privacy/safety, and routing fit. Human pass rate includes a 95% Wilson interval.
+The same rubric is applied by an LLM judge.
 Agreement is reported per dimension using exact agreement, within-one agreement,
 and quadratic-weighted kappa; overall pass uses accuracy and Cohen's kappa.
 Repeated judge runs expose instability. If agreement is weak, the human pass
 rate remains the headline.
+
+Baseline win/tie/loss is derived case by case from the same blind ratings:
+`PASS` beats `FAIL`, then total rubric score breaks an equal pass status. Equal
+totals tie. This is reported as rubric-derived, not as a direct preference vote,
+and cannot replace the safety dimensions.
 
 Retrieval uses a separate system-blinded review: 25 stratified queries and the
 pooled union of BM25 and reranked top-three candidates (117 judgments). It

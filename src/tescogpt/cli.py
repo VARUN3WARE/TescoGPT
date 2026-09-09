@@ -18,6 +18,8 @@ from tescogpt.evaluation.labels import (
 )
 from tescogpt.evaluation.metrics import evaluate_predictions
 from tescogpt.evaluation.reply_review import (
+    evaluate_reply_quality,
+    freeze_reply_review,
     initialize_reply_review,
     validate_reply_ratings,
 )
@@ -319,6 +321,28 @@ def _build_parser() -> argparse.ArgumentParser:
     review_check.add_argument("--input", type=Path, required=True)
     review_check.add_argument("--require-complete", action="store_true")
 
+    review_freeze = subparsers.add_parser(
+        "reply-review-freeze",
+        help="Freeze complete human reply ratings and verify blinded content.",
+    )
+    review_freeze.add_argument("--review", type=Path, required=True)
+    review_freeze.add_argument("--identity-key", type=Path, required=True)
+    review_freeze.add_argument("--manifest", type=Path, required=True)
+
+    review_evaluate = subparsers.add_parser(
+        "reply-evaluate",
+        help="Aggregate reply ratings and derive case-matched baseline comparisons.",
+    )
+    review_evaluate.add_argument("--review", type=Path, required=True)
+    review_evaluate.add_argument("--identity-key", type=Path, required=True)
+    review_evaluate.add_argument("--manifest", type=Path)
+    review_evaluate.add_argument("--reference-system", required=True)
+    review_evaluate.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/evaluation/reply_quality.json"),
+    )
+
     judge_review = subparsers.add_parser(
         "judge-review",
         help="Run a structured LLM judge over a blinded review packet.",
@@ -558,6 +582,26 @@ def main(argv: Sequence[str] | None = None) -> None:
             require_complete=args.require_complete,
         )
         print(json.dumps(progress, indent=2, sort_keys=True))
+        return
+
+    if args.command == "reply-review-freeze":
+        manifest = freeze_reply_review(
+            review_path=args.review,
+            key_path=args.identity_key,
+            manifest_path=args.manifest,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "reply-evaluate":
+        report = evaluate_reply_quality(
+            review_path=args.review,
+            key_path=args.identity_key,
+            output_path=args.output,
+            reference_system=args.reference_system,
+            manifest_path=args.manifest,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
         return
 
     if args.command == "judge-review":

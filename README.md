@@ -89,8 +89,8 @@ Planned primary measures:
 - unsafe auto-handle rate and its confidence bound;
 - automation coverage at a fixed safety target;
 - risk–coverage curve and cost-sensitive routing utility;
-- human all-critical-dimensions reply pass rate;
-- pairwise reply win/tie/loss against baselines;
+- human all-critical-dimensions reply pass rate with a Wilson interval;
+- rubric-derived, case-matched reply win/tie/loss against baselines;
 - pooled retrieval Precision@3/nDCG@3 on blinded human relevance labels; and
 - judge–human agreement per dimension, repeatability, and disagreement analysis.
 

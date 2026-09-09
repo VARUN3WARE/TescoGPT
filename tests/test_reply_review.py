@@ -12,10 +12,16 @@ from tescogpt.evaluation.agreement import (
     cohen_kappa,
     weighted_kappa,
 )
-from tescogpt.evaluation.judge import OpenAIReplyJudge, judge_human_agreement
+from tescogpt.evaluation.judge import (
+    JudgeRating,
+    OpenAIReplyJudge,
+    judge_human_agreement,
+)
 from tescogpt.evaluation.labels import LABEL_COLUMNS
 from tescogpt.evaluation.reply_review import (
     RATING_DIMENSIONS,
+    evaluate_reply_quality,
+    freeze_reply_review,
     initialize_reply_review,
     validate_reply_ratings,
 )
@@ -91,6 +97,7 @@ def test_reply_review_is_stratified_and_system_blinded(tmp_path: Path) -> None:
     assert "sample_slice" not in review_frame
     assert set(key_frame["system_name"]) == {"a", "b"}
     assert manifest["slice_case_counts"] == {"challenge": 1, "natural": 2}
+    assert manifest["review_content_sha256"]
 
 
 def test_reply_rating_validator_rejects_partial_row(tmp_path: Path) -> None:
@@ -110,6 +117,72 @@ def test_reply_rating_validator_rejects_partial_row(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="partially completed"):
         validate_reply_ratings(path)
+
+
+def test_reply_rating_validator_enforces_frozen_pass_rule(tmp_path: Path) -> None:
+    path = tmp_path / "review.csv"
+    row = {
+        "review_id": "r1",
+        "case_id": "c1",
+        "draft_reply": "reply",
+        **{dimension: "2" for dimension in RATING_DIMENSIONS},
+        "critical_error_tags": "unsupported_claim_or_action",
+        "overall_pass": "PASS",
+        "reviewer_id": "human_a",
+        "review_notes": "The draft invents a completed refund.",
+    }
+    pd.DataFrame([row]).to_csv(path, index=False)
+
+    with pytest.raises(ValueError, match="overall-pass rule"):
+        validate_reply_ratings(path)
+
+
+def test_reply_quality_freeze_and_pairwise_summary(tmp_path: Path) -> None:
+    gold = _gold(tmp_path / "gold.csv")
+    registry = tmp_path / "registry.csv"
+    pd.DataFrame(
+        [
+            {"case_id": f"case-{index}", "sample_slice": "natural" if index < 3 else "challenge"}
+            for index in range(4)
+        ]
+    ).to_csv(registry, index=False)
+    review = tmp_path / "review.csv"
+    key = tmp_path / "key.csv"
+    manifest_path = tmp_path / "manifest.json"
+    initialize_reply_review(
+        gold,
+        registry,
+        [_prediction(tmp_path / "a.csv", "a"), _prediction(tmp_path / "b.csv", "b")],
+        review,
+        key,
+        manifest_path,
+        case_count=3,
+        seed=4,
+    )
+    review_frame = pd.read_csv(review, dtype="string", keep_default_na=False)
+    key_frame = pd.read_csv(key, dtype="string", keep_default_na=False)
+    system_by_review = key_frame.set_index("review_id")["system_name"]
+    for index, row in review_frame.iterrows():
+        is_reference = system_by_review.loc[row["review_id"]] == "a"
+        for dimension in RATING_DIMENSIONS:
+            review_frame.loc[index, dimension] = "2" if is_reference else "1"
+        review_frame.loc[index, "overall_pass"] = "PASS" if is_reference else "FAIL"
+        review_frame.loc[index, "reviewer_id"] = "human_a"
+    review_frame.to_csv(review, index=False)
+
+    manifest = freeze_reply_review(review, key, manifest_path)
+    report = evaluate_reply_quality(
+        review,
+        key,
+        tmp_path / "quality.json",
+        reference_system="a",
+        manifest_path=manifest_path,
+    )
+
+    assert manifest["label_status"] == "HUMAN_RATED"
+    assert report["systems"]["a"]["slices"]["all"]["overall_pass_rate"] == 1
+    assert report["systems"]["b"]["slices"]["all"]["overall_pass_rate"] == 0
+    assert report["rubric_derived_pairwise"]["b"]["reference_wins"] == 3
 
 
 def test_kappa_statistics_have_known_endpoints() -> None:
@@ -166,6 +239,16 @@ def test_openai_judge_is_blinded_structured_and_cached(tmp_path: Path) -> None:
     assert request["store"] is False
     assert "must-not-be-sent" not in request["input"]
     assert request["text"]["format"]["strict"] is True
+
+
+def test_judge_rating_rejects_inconsistent_pass() -> None:
+    with pytest.raises(ValueError, match="frozen reply-quality rule"):
+        JudgeRating(
+            **{dimension: 2 for dimension in RATING_DIMENSIONS},
+            critical_error_tags=("unsupported_claim_or_action",),
+            overall_pass="PASS",
+            rationale="The claim is unsupported.",
+        )
 
 
 def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> None:
