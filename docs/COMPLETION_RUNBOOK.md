@@ -136,3 +136,6 @@ python -m pytest
 
 The final reproduction must report `COMPLETE`, pass every artifact hash, and
 finish in under 15 minutes before the repository is tagged or submitted.
+The synthetic FINAL-path regression in `tests/test_reproduce_final.py` must also
+remain green. It validates orchestration only; never cite its synthetic scores
+as project results.
