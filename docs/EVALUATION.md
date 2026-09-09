@@ -18,6 +18,12 @@ second annotation rounds.
 The natural and challenge slices are always reported separately. The challenge
 slice is a stress test and must not be described as traffic prevalence.
 
+Every system pair also receives an A-minus-B macro-F1 difference with a paired,
+intent-stratified 2,000-resample percentile interval. The same sampled case
+indices feed both systems, and intent strata retain their observed support. The
+reported bootstrap win fraction is descriptive—not a Bayesian probability—and
+the interval is not corrected for multiple pairwise comparisons.
+
 ## Selective automation
 
 - **Coverage:** fraction predicted `AUTO_HANDLE`.

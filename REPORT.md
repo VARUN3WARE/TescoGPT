@@ -85,8 +85,10 @@ in the per-example artifact, while human reply scoring sees only the latter.
 ## 4. Evaluation protocol
 
 Intent evaluation reports accuracy, macro-F1 over observed intents and the full
-taxonomy, every per-intent error count, and a 2,000-resample interval. Routing
-reports coverage, unsafe automatic handling, needless escalation, and a
+taxonomy, every per-intent error count, a per-system interval, and paired,
+intent-stratified bootstrap intervals for differences between every system
+pair. Routing reports coverage, unsafe automatic handling, needless escalation,
+and a
 one-sided 95% Wilson upper bound on unsafe-auto risk. The entire score-ranked
 risk–coverage curve is retained; selecting a test-set point after seeing that
 curve is prohibited. Stated reasons are reported separately using exact accuracy,

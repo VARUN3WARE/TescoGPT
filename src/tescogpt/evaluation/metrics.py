@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+from itertools import combinations
 from pathlib import Path
 from statistics import NormalDist
 from typing import Any
@@ -103,6 +104,113 @@ def bootstrap_macro_f1(
         "iterations": iterations,
         "seed": seed,
     }
+
+
+def _macro_f1_for_labels(
+    gold: pd.Series,
+    predicted: pd.Series,
+    labels: list[str],
+) -> float:
+    per_intent = intent_metrics(gold, predicted)["per_intent"]
+    return float(np.mean([per_intent[label]["f1"] for label in labels]))
+
+
+def paired_bootstrap_macro_f1(
+    gold: pd.Series,
+    system_a: pd.Series,
+    system_b: pd.Series,
+    *,
+    iterations: int = 2000,
+    seed: int = 20260911,
+) -> dict[str, float | int]:
+    """Estimate A-minus-B macro-F1 uncertainty with paired stratified resamples."""
+    if iterations <= 0:
+        raise ValueError("iterations must be positive")
+    if len(gold) == 0 or len(gold) != len(system_a) or len(gold) != len(system_b):
+        raise ValueError("Paired bootstrap inputs must be equally sized and non-empty")
+    gold_values = gold.reset_index(drop=True)
+    a_values = system_a.reset_index(drop=True)
+    b_values = system_b.reset_index(drop=True)
+    observed_labels = [label for label in INTENT_LABELS if gold_values.eq(label).any()]
+    group_indices = [
+        np.flatnonzero(gold_values.eq(label).to_numpy()) for label in observed_labels
+    ]
+    point_difference = _macro_f1_for_labels(
+        gold_values, a_values, observed_labels
+    ) - _macro_f1_for_labels(gold_values, b_values, observed_labels)
+    rng = np.random.default_rng(seed)
+    differences = np.empty(iterations, dtype=float)
+    for index in range(iterations):
+        sample = np.concatenate(
+            [rng.choice(group, size=len(group), replace=True) for group in group_indices]
+        )
+        differences[index] = _macro_f1_for_labels(
+            gold_values.iloc[sample].reset_index(drop=True),
+            a_values.iloc[sample].reset_index(drop=True),
+            observed_labels,
+        ) - _macro_f1_for_labels(
+            gold_values.iloc[sample].reset_index(drop=True),
+            b_values.iloc[sample].reset_index(drop=True),
+            observed_labels,
+        )
+    return {
+        "macro_f1_difference": float(point_difference),
+        "lower_95": float(np.quantile(differences, 0.025)),
+        "upper_95": float(np.quantile(differences, 0.975)),
+        "bootstrap_fraction_a_better": float(np.mean(differences > 0)),
+        "bootstrap_fraction_tied": float(np.mean(differences == 0)),
+        "iterations": iterations,
+        "seed": seed,
+        "observed_intent_count": len(observed_labels),
+    }
+
+
+def paired_intent_comparisons(
+    system_frames: dict[str, pd.DataFrame],
+    *,
+    bootstrap_iterations: int,
+    seed: int,
+) -> list[dict[str, Any]]:
+    """Compare every system pair on aligned cases and the same bootstrap draws."""
+    comparisons = []
+    for pair_offset, (system_a, system_b) in enumerate(
+        combinations(sorted(system_frames), 2)
+    ):
+        left = system_frames[system_a].loc[
+            :, ["case_id", "sample_slice", "intent_label", "predicted_intent"]
+        ]
+        right = system_frames[system_b].loc[:, ["case_id", "predicted_intent"]]
+        aligned = left.merge(
+            right,
+            on="case_id",
+            suffixes=("_a", "_b"),
+            validate="one_to_one",
+        )
+        slices = {"all": aligned}
+        slices.update(
+            {
+                str(name): group.copy()
+                for name, group in aligned.groupby("sample_slice", sort=True)
+            }
+        )
+        comparisons.append(
+            {
+                "system_a": system_a,
+                "system_b": system_b,
+                "difference_definition": "system_a macro-F1 minus system_b macro-F1",
+                "slices": {
+                    name: paired_bootstrap_macro_f1(
+                        frame["intent_label"],
+                        frame["predicted_intent_a"],
+                        frame["predicted_intent_b"],
+                        iterations=bootstrap_iterations,
+                        seed=seed + pair_offset * 100 + slice_offset,
+                    )
+                    for slice_offset, (name, frame) in enumerate(slices.items())
+                },
+            }
+        )
+    return comparisons
 
 
 def routing_metrics(frame: pd.DataFrame) -> dict[str, Any]:
@@ -235,6 +343,7 @@ def evaluate_predictions(
         raise ValueError("Every gold case must exist in the sampling registry")
 
     results: dict[str, Any] = {}
+    system_frames: dict[str, pd.DataFrame] = {}
     for prediction_path in prediction_paths:
         path = Path(prediction_path)
         predictions = pd.read_csv(path, dtype="string", keep_default_na=False)
@@ -289,6 +398,9 @@ def evaluate_predictions(
         if len(system_names) != 1:
             raise ValueError(f"Prediction file must contain one system name: {path}")
         system_name = str(system_names[0])
+        if system_name in results:
+            raise ValueError(f"System name appears in more than one prediction file: {system_name}")
+        system_frames[system_name] = merged
         slices = {"all": merged}
         slices.update(
             {
@@ -309,11 +421,16 @@ def evaluate_predictions(
         }
 
     report = {
-        "evaluation_schema_version": 1,
+        "evaluation_schema_version": 2,
         "gold_file": Path(gold_path).name,
         "registry_file": Path(registry_path).name,
         "system_count": len(results),
         "systems": results,
+        "paired_intent_comparisons": paired_intent_comparisons(
+            system_frames,
+            bootstrap_iterations=bootstrap_iterations,
+            seed=seed + 10_000,
+        ),
         "important_definition": (
             "unsafe_auto means predicted AUTO_HANDLE where a human labelled ESCALATE"
         ),

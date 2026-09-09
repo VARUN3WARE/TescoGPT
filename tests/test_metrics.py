@@ -10,6 +10,8 @@ from tescogpt.evaluation.metrics import (
     decision_reason_metrics,
     evaluate_predictions,
     intent_metrics,
+    paired_bootstrap_macro_f1,
+    paired_intent_comparisons,
     risk_coverage_curve,
     routing_metrics,
     wilson_upper,
@@ -93,6 +95,58 @@ def test_risk_coverage_uses_score_ranking() -> None:
     assert curve[1]["selected_count"] == 1
     assert curve[1]["unsafe_rate"] == 0
     assert curve[-1]["unsafe_rate"] == 0.5
+
+
+def test_paired_bootstrap_preserves_case_pairing_and_intent_strata() -> None:
+    gold = pd.Series(
+        [
+            "delivery_or_collection",
+            "delivery_or_collection",
+            "feedback_praise_or_suggestion",
+            "feedback_praise_or_suggestion",
+        ]
+    )
+    stronger = gold.copy()
+    weaker = pd.Series(["other_or_unclear"] * len(gold))
+
+    result = paired_bootstrap_macro_f1(
+        gold,
+        stronger,
+        weaker,
+        iterations=20,
+        seed=7,
+    )
+
+    assert result["macro_f1_difference"] == 1
+    assert result["lower_95"] == 1
+    assert result["upper_95"] == 1
+    assert result["bootstrap_fraction_a_better"] == 1
+
+
+def test_pairwise_report_aligns_systems_by_case_id() -> None:
+    base = pd.DataFrame(
+        {
+            "case_id": ["case-1", "case-2"],
+            "sample_slice": ["natural", "challenge"],
+            "intent_label": [
+                "delivery_or_collection",
+                "feedback_praise_or_suggestion",
+            ],
+        }
+    )
+    stronger = base.assign(predicted_intent=base["intent_label"])
+    weaker = base.iloc[::-1].copy().assign(predicted_intent="other_or_unclear")
+
+    comparisons = paired_intent_comparisons(
+        {"stronger": stronger, "weaker": weaker},
+        bootstrap_iterations=5,
+        seed=3,
+    )
+
+    assert len(comparisons) == 1
+    assert comparisons[0]["system_a"] == "stronger"
+    assert comparisons[0]["slices"]["all"]["macro_f1_difference"] == 1
+    assert set(comparisons[0]["slices"]) == {"all", "challenge", "natural"}
 
 
 def test_evaluation_refuses_incomplete_human_labels(tmp_path: Path) -> None:
@@ -188,6 +242,7 @@ def test_complete_evaluation_and_static_audit_write_artifacts(tmp_path: Path) ->
     )
 
     assert metrics["systems"]["test-system"]["slices"]["all"]["intent"]["accuracy"] == 1
+    assert metrics["paired_intent_comparisons"] == []
     assert (
         metrics["systems"]["test-system"]["slices"]["all"]["decision_reason"][
             "exact_accuracy"

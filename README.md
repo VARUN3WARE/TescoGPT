@@ -93,8 +93,8 @@ Frozen primary measures:
 - intent macro-F1 with bootstrap confidence intervals;
 - unsafe auto-handle rate and its confidence bound;
 - exact decision-reason accuracy and reason-confusion counts;
-- automation coverage at a fixed safety target;
-- risk–coverage curve and cost-sensitive routing utility;
+- automation coverage under the frozen policy and a diagnostic risk–coverage curve;
+- paired macro-F1 differences and stratified-bootstrap intervals between systems;
 - human all-critical-dimensions reply pass rate with a Wilson interval;
 - rubric-derived, case-matched reply win/tie/loss against baselines;
 - pooled retrieval Precision@3/nDCG@3 on blinded human relevance labels; and
@@ -116,9 +116,6 @@ five are selected.
    always escalate.
 2. **Simple:** ordered keyword intent rules, BM25 nearest historical reply, and
    explicit safety/policy routing rules.
-3. **Ablations:** the main system without retrieval and without the outcome
-   evidence filter.
-
 Their exact frozen behavior and limitations are documented in
 [the baseline definitions](docs/BASELINES.md). Both emit the same validated
 schema as the final agent.
