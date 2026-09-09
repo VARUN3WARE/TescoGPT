@@ -1,0 +1,16 @@
+{
+  "candidate_pool": 50,
+  "corpus_file": "tesco_cases.csv",
+  "corpus_row_count": 17345,
+  "corpus_sha256": "dce80d676b7a1979b5a8454b24ef86d5be12c2fbbad26a2ef497b627e65481bb",
+  "corpus_split": "train",
+  "input_file": "golden_candidates.csv",
+  "input_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
+  "method": "bm25_outcome_rerank_v1",
+  "output_file": "outcome_aware.csv",
+  "output_sha256": "78f3c36bf75662d6b0df76d0ae70d253bfaac60f87459e4f80bef2dca9ec56eb",
+  "query_count": 200,
+  "retrieval_schema_version": 1,
+  "retrieved_row_count": 600,
+  "top_k": 3
+}

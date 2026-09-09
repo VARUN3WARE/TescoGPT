@@ -12,6 +12,7 @@ from tescogpt.data.threads import extract_brand_conversations
 from tescogpt.evaluation.labels import initialize_annotation_rounds, validate_annotations
 from tescogpt.evaluation.sampling import sample_golden_candidates
 from tescogpt.prediction import run_predictions
+from tescogpt.retrieval.outcome import write_retrieval_artifact
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -162,6 +163,28 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     predict.add_argument("--output", type=Path, required=True)
 
+    retrieve = subparsers.add_parser(
+        "retrieve",
+        help="Write auditable outcome-aware precedents for each input case.",
+    )
+    retrieve.add_argument(
+        "--input",
+        type=Path,
+        default=Path("data/golden/golden_candidates.csv"),
+    )
+    retrieve.add_argument(
+        "--corpus",
+        type=Path,
+        default=Path("data/processed/tesco_cases.csv"),
+    )
+    retrieve.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/retrieval/outcome_aware.csv"),
+    )
+    retrieve.add_argument("--top-k", type=int, default=3)
+    retrieve.add_argument("--candidate-pool", type=int, default=50)
+
     return parser
 
 
@@ -227,6 +250,17 @@ def main(argv: Sequence[str] | None = None) -> None:
             input_path=args.input,
             output_path=args.output,
             corpus_path=args.corpus if args.system == "simple" else None,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "retrieve":
+        manifest = write_retrieval_artifact(
+            input_path=args.input,
+            corpus_path=args.corpus,
+            output_path=args.output,
+            top_k=args.top_k,
+            candidate_pool=args.candidate_pool,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
         return

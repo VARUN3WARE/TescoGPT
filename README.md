@@ -125,6 +125,7 @@ python -m tescogpt audit --manifest data/processed/tesco_messages.csv.manifest.j
 python -m tescogpt sample
 python -m tescogpt labels-init
 python -m tescogpt labels-check --input data/golden/round1_annotations.csv
+python -m tescogpt retrieve
 ```
 
 Raw and full processed datasets are gitignored. The command writes a long-form
@@ -139,6 +140,12 @@ To finish the human-label checkpoint, annotator one completes all 200 rows in
 60 rows in `round2_annotations.csv`. Validate either file with
 `labels-check --require-complete`. AI-generated labels do not satisfy this
 project's golden-set requirement.
+
+Historical replies are retrieved only from the training period and reranked by
+weak follow-up evidence plus static safety penalties. The full method, its
+unfitted scoring formula, and its limitations are in
+[the retrieval note](docs/RETRIEVAL.md); raw top-three evidence is committed for
+all 200 candidates.
 
 ## Repository map
 
