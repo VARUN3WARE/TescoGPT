@@ -1,0 +1,47 @@
+{
+  "static_safety_schema_version": 1,
+  "systems": {
+    "simple_rules_bm25_v1": {
+      "auto_handled_count": 2,
+      "details_file": "simple_static_safety.csv",
+      "details_sha256": "5666aabcf98e28e0c562f5d81a75f9a6d0cbb1e64228571e0d7a8cdab0dcf0a3",
+      "flag_counts": {
+        "over_public_length_limit": 53,
+        "personal_data_request": 78,
+        "private_channel_request": 98,
+        "unsupported_financial_promise": 1
+      },
+      "flagged_auto_handled_count": 1,
+      "flagged_draft_count": 116,
+      "flagged_draft_rate": 0.58,
+      "prediction_file": "simple.csv",
+      "prediction_sha256": "5c7b3a708dc5cf63ef94b9f8f5591cc9592b9f53af8b0267f9d32cf8303d7073",
+      "row_count": 200
+    },
+    "tescogpt_guarded_template_v1_policy_v1": {
+      "auto_handled_count": 9,
+      "details_file": "main_template_static_safety.csv",
+      "details_sha256": "a8f7dc52b431fd2124ba9dffde8784cc205099d07a4a384b18baf4022b38c0cf",
+      "flag_counts": {},
+      "flagged_auto_handled_count": 0,
+      "flagged_draft_count": 0,
+      "flagged_draft_rate": 0.0,
+      "prediction_file": "main_template.csv",
+      "prediction_sha256": "addbb0e20a8002d37314bdf4b3d12aa504f7e68f7a8ef15f61e34db3c6cc5742",
+      "row_count": 200
+    },
+    "trivial_constant_v1": {
+      "auto_handled_count": 0,
+      "details_file": "trivial_static_safety.csv",
+      "details_sha256": "a145fae9dcd22f52b6b379db3db2bd0042b6778ba9f1ff9bd187afad201c9c0e",
+      "flag_counts": {},
+      "flagged_auto_handled_count": 0,
+      "flagged_draft_count": 0,
+      "flagged_draft_rate": 0.0,
+      "prediction_file": "trivial.csv",
+      "prediction_sha256": "61a85a1e83730df125aa813a8ca94bbb609a819fbd5965d62c41f10b3d8f0690",
+      "row_count": 200
+    }
+  },
+  "warning": "Regex warnings are deterministic checks, not human reply-quality labels."
+}

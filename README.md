@@ -89,6 +89,10 @@ Planned primary measures:
 - retrieval Recall@k/nDCG on human relevance labels; and
 - judge–human agreement, position consistency, and repeatability.
 
+Metric definitions and the currently runnable label-free safety audit are in
+[the evaluation protocol](docs/EVALUATION.md). Human-dependent metrics are coded
+but intentionally fail while the annotation sheets are incomplete.
+
 ## Baselines
 
 1. **Trivial:** constant `other_or_unclear` intent, generic acknowledgement,

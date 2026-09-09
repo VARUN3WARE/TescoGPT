@@ -10,6 +10,8 @@ from pathlib import Path
 from tescogpt.data.audit import audit_conversations
 from tescogpt.data.threads import extract_brand_conversations
 from tescogpt.evaluation.labels import initialize_annotation_rounds, validate_annotations
+from tescogpt.evaluation.metrics import evaluate_predictions
+from tescogpt.evaluation.safety import audit_prediction_safety
 from tescogpt.evaluation.sampling import sample_golden_candidates
 from tescogpt.prediction import run_predictions
 from tescogpt.retrieval.outcome import write_retrieval_artifact
@@ -199,6 +201,41 @@ def _build_parser() -> argparse.ArgumentParser:
     retrieve.add_argument("--top-k", type=int, default=3)
     retrieve.add_argument("--candidate-pool", type=int, default=50)
 
+    evaluate = subparsers.add_parser(
+        "evaluate",
+        help="Evaluate prediction files against a complete human-labelled set.",
+    )
+    evaluate.add_argument("--gold", type=Path, required=True)
+    evaluate.add_argument(
+        "--registry",
+        type=Path,
+        default=Path("data/golden/golden_candidates.csv"),
+    )
+    evaluate.add_argument("--predictions", type=Path, nargs="+", required=True)
+    evaluate.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/evaluation/metrics.json"),
+    )
+    evaluate.add_argument("--bootstrap-iterations", type=int, default=2000)
+    evaluate.add_argument("--seed", type=int, default=20260911)
+
+    safety_audit = subparsers.add_parser(
+        "safety-audit",
+        help="Run label-free static checks over public reply drafts.",
+    )
+    safety_audit.add_argument("--predictions", type=Path, nargs="+", required=True)
+    safety_audit.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/evaluation/static_safety.json"),
+    )
+    safety_audit.add_argument(
+        "--details-directory",
+        type=Path,
+        default=Path("outputs/evaluation/static_safety"),
+    )
+
     return parser
 
 
@@ -279,6 +316,27 @@ def main(argv: Sequence[str] | None = None) -> None:
             candidate_pool=args.candidate_pool,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "evaluate":
+        report = evaluate_predictions(
+            gold_path=args.gold,
+            registry_path=args.registry,
+            prediction_paths=args.predictions,
+            output_path=args.output,
+            bootstrap_iterations=args.bootstrap_iterations,
+            seed=args.seed,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.command == "safety-audit":
+        report = audit_prediction_safety(
+            prediction_paths=args.predictions,
+            output_path=args.output,
+            details_directory=args.details_directory,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
         return
 
     parser.error(f"Unknown command: {args.command}")
