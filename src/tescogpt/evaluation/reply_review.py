@@ -124,6 +124,93 @@ def validate_reply_review_key(review: pd.DataFrame, key: pd.DataFrame) -> list[s
     return systems
 
 
+def validate_reply_review_sources(
+    review_path: str | Path,
+    key_path: str | Path,
+    gold_path: str | Path,
+    prediction_paths: list[str | Path],
+) -> dict[str, Any]:
+    """Prove blinded review context and compared drafts match frozen source artifacts."""
+    validate_reply_ratings(review_path)
+    validate_annotations(gold_path, require_complete=True, require_blind=True)
+    review = pd.read_csv(review_path, dtype="string", keep_default_na=False)
+    key = pd.read_csv(key_path, dtype="string", keep_default_na=False)
+    systems = validate_reply_review_key(review, key)
+    merged = review.merge(key, on=["review_id", "case_id"], validate="one_to_one")
+    gold = pd.read_csv(gold_path, dtype="string", keep_default_na=False)
+    gold_by_id = gold.set_index("case_id", drop=False)
+    if not set(merged["case_id"]).issubset(set(gold_by_id.index)):
+        raise ValueError("Reply review contains a case outside the frozen gold set")
+
+    gold_mapping = {
+        "message": "message",
+        "prior_context": "prior_context",
+        "gold_intent": "intent_label",
+        "gold_handling": "handling_label",
+        "gold_reason": "reason_code",
+        "must_include": "must_include",
+        "must_avoid": "must_avoid",
+    }
+    for row in merged.to_dict(orient="records"):
+        source = gold_by_id.loc[row["case_id"]]
+        for review_column, gold_column in gold_mapping.items():
+            if str(row[review_column]) != str(source[gold_column]):
+                raise ValueError(
+                    f"Reply review {review_column} differs from frozen gold for {row['case_id']}"
+                )
+
+    predictions_by_system: dict[str, pd.DataFrame] = {}
+    for path_value in prediction_paths:
+        path = Path(path_value)
+        predictions = pd.read_csv(path, dtype="string", keep_default_na=False)
+        required = {
+            "case_id",
+            "system_name",
+            "draft_reply",
+            "handling_decision",
+            "decision_reason",
+            "evidence_quotes",
+        }
+        missing = sorted(required - set(predictions.columns))
+        if missing:
+            raise ValueError(f"Reply-review prediction is missing columns: {', '.join(missing)}")
+        if predictions["case_id"].duplicated().any():
+            raise ValueError(f"Reply-review prediction has duplicate case IDs: {path}")
+        names = sorted(set(predictions["system_name"]))
+        if len(names) != 1 or not names[0]:
+            raise ValueError(f"Reply-review prediction must contain one system: {path}")
+        if names[0] in predictions_by_system:
+            raise ValueError(f"Duplicate reply-review prediction system: {names[0]}")
+        predictions_by_system[names[0]] = predictions.set_index("case_id", drop=False)
+    if set(predictions_by_system) != set(systems):
+        raise ValueError("Reply-review systems differ from the frozen prediction files")
+
+    prediction_mapping = {
+        "draft_reply": "draft_reply",
+        "proposed_handling": "handling_decision",
+        "proposed_reason": "decision_reason",
+        "evidence_quotes": "evidence_quotes",
+    }
+    compared = merged.loc[merged["row_role"].eq("compared")]
+    for row in compared.to_dict(orient="records"):
+        predictions = predictions_by_system[row["system_name"]]
+        if row["case_id"] not in predictions.index:
+            raise ValueError("Reply review case is absent from a frozen prediction file")
+        source = predictions.loc[row["case_id"]]
+        for review_column, prediction_column in prediction_mapping.items():
+            if str(row[review_column]) != str(source[prediction_column]):
+                raise ValueError(
+                    f"Reply review {review_column} differs from frozen prediction "
+                    f"for {row['case_id']}/{row['system_name']}"
+                )
+    return {
+        "case_count": int(compared["case_id"].nunique()),
+        "compared_row_count": len(compared),
+        "control_count": int(merged["row_role"].eq("control").sum()),
+        "systems": systems,
+    }
+
+
 def _allocate_stratified_counts(sizes: pd.Series, total: int) -> pd.Series:
     exact = sizes / int(sizes.sum()) * total
     allocated = exact.astype(int)
@@ -307,6 +394,12 @@ def initialize_reply_review(
     key.to_csv(key_file, index=False, lineterminator="\n")
     validate_reply_ratings(review_file)
     validate_reply_review_key(review, key)
+    validate_reply_review_sources(
+        review_file,
+        key_file,
+        gold_path,
+        prediction_paths,
+    )
     manifest = {
         "reply_review_schema_version": 1,
         "label_status": "UNLABELED",

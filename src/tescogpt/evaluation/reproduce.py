@@ -19,6 +19,7 @@ from tescogpt.evaluation.reply_review import (
     evaluate_reply_quality,
     validate_reply_ratings,
     validate_reply_review_key,
+    validate_reply_review_sources,
 )
 from tescogpt.evaluation.retrieval_review import (
     evaluate_retrieval_review,
@@ -284,6 +285,12 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
         reply_review = pd.read_csv(reply_review_path, dtype="string", keep_default_na=False)
         reply_key = pd.read_csv(reply_key_path, dtype="string", keep_default_na=False)
         validate_reply_review_key(reply_review, reply_key)
+        validate_reply_review_sources(
+            reply_review_path,
+            reply_key_path,
+            _resolve(root, config["gold_file"]),
+            [_resolve(root, value) for value in config["prediction_files"]],
+        )
         compared = reply_key.loc[reply_key["row_role"].eq("compared")]
         controls = reply_key.loc[reply_key["row_role"].eq("control")]
         if compared["case_id"].nunique() != int(config["expected_reply_review_case_count"]):

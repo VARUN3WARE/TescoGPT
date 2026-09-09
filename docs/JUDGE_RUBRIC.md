@@ -55,6 +55,12 @@ resolution claims, unsafe automatic routing, and an untrusted link. Reviewers
 do not receive their identities. These controls are expected to fail, but their
 human ratings are never prefilled.
 
+The blinded packet is also source-validated. Gold context and labels must match
+the adjudicated file, and each genuine draft, route, reason, and evidence field
+must match the keyed system prediction for that case. Controls are exempt only
+from the prediction comparison because their deliberately unsafe drafts have no
+source system. Reproduction repeats this check after ratings freeze.
+
 ## System comparison
 
 Human pass rate with a 95% Wilson interval is the primary reply-quality

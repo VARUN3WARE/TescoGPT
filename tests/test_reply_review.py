@@ -26,6 +26,7 @@ from tescogpt.evaluation.reply_review import (
     freeze_reply_review,
     initialize_reply_review,
     validate_reply_ratings,
+    validate_reply_review_sources,
 )
 
 
@@ -80,11 +81,15 @@ def test_reply_review_is_stratified_and_system_blinded(tmp_path: Path) -> None:
     ).to_csv(registry, index=False)
     review = tmp_path / "review.csv"
     key = tmp_path / "key.csv"
+    predictions = [
+        _prediction(tmp_path / "a.csv", "a"),
+        _prediction(tmp_path / "b.csv", "b"),
+    ]
 
     manifest = initialize_reply_review(
         gold,
         registry,
-        [_prediction(tmp_path / "a.csv", "a"), _prediction(tmp_path / "b.csv", "b")],
+        predictions,
         review,
         key,
         tmp_path / "manifest.json",
@@ -107,6 +112,14 @@ def test_reply_review_is_stratified_and_system_blinded(tmp_path: Path) -> None:
     assert manifest["slice_case_counts"] == {"challenge": 1, "natural": 2}
     assert manifest["control_count"] == 1
     assert manifest["review_content_sha256"]
+
+    compared_id = key_frame.loc[key_frame["row_role"].eq("compared"), "review_id"].iloc[0]
+    review_frame.loc[
+        review_frame["review_id"].eq(compared_id), "draft_reply"
+    ] = "A draft that no frozen system produced."
+    review_frame.to_csv(review, index=False)
+    with pytest.raises(ValueError, match="differs from frozen prediction"):
+        validate_reply_review_sources(review, key, gold, predictions)
 
 
 def test_reply_rating_validator_rejects_partial_row(tmp_path: Path) -> None:
