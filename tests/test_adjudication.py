@@ -176,6 +176,42 @@ def test_unresolved_disagreement_requires_adjudicator(tmp_path: Path) -> None:
         validate_adjudication(adjudication, require_complete=True)
 
 
+def test_complete_adjudication_requires_notes_and_one_adjudicator(
+    tmp_path: Path,
+) -> None:
+    first, second, round_manifest = _rounds(tmp_path)
+    adjudication = tmp_path / "adjudication.csv"
+    initialize_adjudication(
+        first,
+        second,
+        round_manifest,
+        adjudication,
+        tmp_path / "adjudication.manifest.json",
+    )
+    frame = pd.read_csv(adjudication, dtype="string", keep_default_na=False)
+    disagreement = frame["case_id"].eq("case-1")
+    frame.loc[disagreement, "final_intent_label"] = "product_information"
+    frame.loc[disagreement, "final_handling_label"] = "ESCALATE"
+    frame.loc[disagreement, "final_reason_code"] = "HUMAN_JUDGMENT_REQUIRED"
+    frame.loc[disagreement, "adjudicator_id"] = "human_c"
+    frame.to_csv(adjudication, index=False)
+
+    with pytest.raises(ValueError, match="lack adjudication notes"):
+        validate_adjudication(adjudication, require_complete=True)
+
+    frame.loc[disagreement, "adjudication_notes"] = "The customer asks for facts."
+    second_disagreement = frame.loc[disagreement].copy()
+    second_disagreement["case_id"] = "case-extra"
+    second_disagreement["conversation_id"] = "conversation-extra"
+    second_disagreement["tweet_id"] = "tweet-extra"
+    second_disagreement["adjudicator_id"] = "human_d"
+    pd.concat([frame, second_disagreement], ignore_index=True).to_csv(
+        adjudication, index=False
+    )
+    with pytest.raises(ValueError, match="exactly one adjudicator ID"):
+        validate_adjudication(adjudication, require_complete=True)
+
+
 def test_adjudication_cannot_change_an_independent_agreement(tmp_path: Path) -> None:
     first, second, round_manifest = _rounds(tmp_path)
     adjudication = tmp_path / "adjudication.csv"
@@ -213,6 +249,7 @@ def test_finalization_rejects_changed_adjudication_context(tmp_path: Path) -> No
     frame.loc[disagreement, "final_handling_label"] = "ESCALATE"
     frame.loc[disagreement, "final_reason_code"] = "HUMAN_JUDGMENT_REQUIRED"
     frame.loc[disagreement, "adjudicator_id"] = "human_c"
+    frame.loc[disagreement, "adjudication_notes"] = "The customer asks for facts."
     frame.to_csv(adjudication, index=False)
 
     with pytest.raises(ValueError, match="source labels or context changed"):

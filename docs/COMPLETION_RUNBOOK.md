@@ -35,8 +35,9 @@ python -m tescogpt annotation-agreement
 python -m tescogpt adjudication-init
 ```
 
-A human fills every blank `final_*` value plus `adjudicator_id` in
-`data/golden/adjudication.csv`, then runs:
+One human fills every blank `final_*` value, one stable `adjudicator_id`, and a
+short rationale for every disagreement in `data/golden/adjudication.csv`, then
+runs:
 
 ```bash
 python -m tescogpt adjudication-check --require-complete

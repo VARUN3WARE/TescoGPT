@@ -163,6 +163,14 @@ def validate_adjudication(
         problems.append("Final reason codes must be compatible with final handling")
     if require_complete and not resolved.all():
         problems.append(f"{int((~resolved).sum())} adjudication rows are unresolved")
+    missing_notes = disagreements & frame["adjudication_notes"].str.strip().eq("")
+    if require_complete and missing_notes.any():
+        problems.append(
+            f"{int(missing_notes.sum())} resolved disagreements lack adjudication notes"
+        )
+    adjudicator_ids = sorted(set(adjudicator.loc[adjudicator.ne("")]))
+    if require_complete and disagreements.any() and len(adjudicator_ids) != 1:
+        problems.append("completed disagreements must use exactly one adjudicator ID")
     if problems:
         raise ValueError("; ".join(problems))
     return {
@@ -172,7 +180,7 @@ def validate_adjudication(
         "resolved_count": int(resolved.sum()),
         "remaining_count": int((~resolved).sum()),
         "is_complete": bool(resolved.all()),
-        "adjudicator_ids": sorted(set(adjudicator.loc[adjudicator.ne("")])),
+        "adjudicator_ids": adjudicator_ids,
     }
 
 
