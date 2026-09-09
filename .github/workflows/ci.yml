@@ -46,5 +46,8 @@ jobs:
       - name: Verify committed evidence
         run: python -m tescogpt reproduce --allow-incomplete
 
+      - name: Verify committed project status
+        run: python -m tescogpt status
+
       - name: Verify reproduction is idempotent
         run: git diff --exit-code
