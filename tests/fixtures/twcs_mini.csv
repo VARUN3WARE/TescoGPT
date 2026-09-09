@@ -1,0 +1,13 @@
+tweet_id,author_id,inbound,created_at,text,response_tweet_id,in_response_to_tweet_id
+1,100001,True,Wed Nov 01 09:00:00 +0000 2017,@Tesco my delivery is missing,"2,3",
+2,Tesco,False,Wed Nov 01 09:02:00 +0000 2017,@100001 Please tell us whether the complete order is missing.,4,1
+3,100002,True,Wed Nov 01 09:03:00 +0000 2017,@100001 same here,,1
+4,100001,True,Wed Nov 01 09:05:00 +0000 2017,@Tesco Two bags are missing.,5,2
+5,Tesco,False,Wed Nov 01 09:07:00 +0000 2017,@100001 Thanks. Please send the order number through the private channel.,6,4
+6,100001,True,Wed Nov 01 09:10:00 +0000 2017,@Tesco sent it thanks,,5
+10,200001,True,Wed Nov 01 10:00:00 +0000 2017,@OtherBrand help,11,
+11,OtherBrand,False,Wed Nov 01 10:01:00 +0000 2017,@200001 We can help.,,10
+20,Tesco,False,Wed Nov 01 11:00:00 +0000 2017,Store opening update.,21,
+21,300001,True,Wed Nov 01 11:03:00 +0000 2017,@Tesco thank you,,20
+30,400001,True,Wed Nov 01 12:00:00 +0000 2017,I mentioned Tesco in text but this is not a support thread.,,
+

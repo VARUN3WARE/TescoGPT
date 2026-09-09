@@ -97,6 +97,21 @@ workflow.
 Until that workflow exists, setup commands will not be advertised as complete.
 See [the project plan](docs/PROJECT_PLAN.md) for milestones and acceptance gates.
 
+### Current development command
+
+The first implemented slice reconstructs complete reply trees containing Tesco
+messages. It is intentionally separate from the future headline-results command:
+
+```bash
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m tescogpt prepare --input path/to/twcs.csv
+```
+
+Raw and full processed datasets are gitignored. The command writes a long-form
+conversation CSV plus a manifest containing source/output hashes and structural
+counts.
+
 ## Repository map
 
 ```text
@@ -121,4 +136,3 @@ TescoGPT/
 All borrowed code, models, prompts, and data will be attributed at the point of
 use. Customer identifiers will remain anonymized, and no attempt will be made to
 reidentify dataset participants.
-
