@@ -47,7 +47,9 @@ alternative reasons rather than treating all mismatches as equally harmful.
 The label-free audit searches for a deliberately narrow list of observable
 hazards: private-channel and personal-data requests, claimed backend actions,
 financial promises, links, literal contact information, and replies over 280
-characters.
+characters. It reports the model's proposed draft separately from the final
+public draft and counts deterministic replacements; only the final public draft
+enters reply-quality scoring.
 
 | System | Flagged drafts | Flagged automatic drafts |
 |---|---:|---:|

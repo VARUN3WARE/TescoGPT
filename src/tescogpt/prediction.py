@@ -81,7 +81,7 @@ def run_predictions(
     predictions.to_csv(destination, index=False, lineterminator="\n")
 
     manifest: dict[str, Any] = {
-        "prediction_schema_version": 1,
+        "prediction_schema_version": 2,
         "system": agent.name,
         "input_file": source.name,
         "input_sha256": _sha256(source),

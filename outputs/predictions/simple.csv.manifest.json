@@ -6,8 +6,8 @@
   "input_file": "golden_candidates.csv",
   "input_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
   "prediction_file": "simple.csv",
-  "prediction_schema_version": 1,
-  "prediction_sha256": "5c7b3a708dc5cf63ef94b9f8f5591cc9592b9f53af8b0267f9d32cf8303d7073",
+  "prediction_schema_version": 2,
+  "prediction_sha256": "0e5ba17029c7b8926b4b841b2b0950b4fdc172660954d48656262daaed08e6bd",
   "row_count": 200,
   "system": "simple_rules_bm25_v1"
 }

@@ -41,7 +41,8 @@ class EvidencePolicyAgent:
         )
         reply = draft.draft_reply
         guardrail_flags = tuple(f"draft_guardrail:{flag}" for flag in policy.reply_flags)
-        if guardrail_flags:
+        draft_was_replaced = bool(guardrail_flags)
+        if draft_was_replaced:
             reply = safe_template(draft.predicted_intent)
 
         return AgentOutput(
@@ -49,7 +50,9 @@ class EvidencePolicyAgent:
             system_name=self.name,
             predicted_intent=draft.predicted_intent,
             intent_confidence=draft.intent_confidence,
+            proposed_draft=draft.draft_reply,
             draft_reply=reply,
+            draft_was_replaced=draft_was_replaced,
             handling_decision=policy.handling_decision,
             decision_reason=policy.reason,
             automation_score=policy.automation_score,

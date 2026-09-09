@@ -104,6 +104,8 @@ def test_prediction_runner_writes_rows_and_manifest(tmp_path: Path) -> None:
     )
     assert len(output) == 1
     assert output.loc[0, "system_name"] == "trivial_constant_v1"
+    assert output.loc[0, "proposed_draft"] == output.loc[0, "draft_reply"]
+    assert not bool(output.loc[0, "draft_was_replaced"])
     assert manifest == saved_manifest
 
 

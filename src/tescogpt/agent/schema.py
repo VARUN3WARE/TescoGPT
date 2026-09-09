@@ -29,6 +29,8 @@ class AgentOutput:
     evidence_quotes: tuple[str, ...] = field(default_factory=tuple)
     evidence_scores: tuple[float, ...] = field(default_factory=tuple)
     safety_flags: tuple[str, ...] = field(default_factory=tuple)
+    proposed_draft: str | None = None
+    draft_was_replaced: bool = False
 
     def __post_init__(self) -> None:
         if not self.case_id.strip():
@@ -41,6 +43,15 @@ class AgentOutput:
             raise ValueError("intent_confidence must be between 0 and 1")
         if not self.draft_reply.strip():
             raise ValueError("draft_reply must not be blank")
+        if self.proposed_draft is not None and not self.proposed_draft.strip():
+            raise ValueError("proposed_draft must not be blank when supplied")
+        if not isinstance(self.draft_was_replaced, bool):
+            raise ValueError("draft_was_replaced must be boolean")
+        proposed = self.proposed_draft or self.draft_reply
+        if self.draft_was_replaced and proposed == self.draft_reply:
+            raise ValueError("A replaced draft must differ from the public draft")
+        if not self.draft_was_replaced and proposed != self.draft_reply:
+            raise ValueError("Different proposed and public drafts require replacement provenance")
         if self.handling_decision not in {"AUTO_HANDLE", "ESCALATE"}:
             raise ValueError(f"Unknown handling decision: {self.handling_decision}")
         allowed_reasons = (
@@ -66,7 +77,9 @@ class AgentOutput:
             "system_name": self.system_name,
             "predicted_intent": self.predicted_intent,
             "intent_confidence": round(float(self.intent_confidence), 6),
+            "proposed_draft": self.proposed_draft or self.draft_reply,
             "draft_reply": self.draft_reply,
+            "draft_was_replaced": self.draft_was_replaced,
             "handling_decision": self.handling_decision,
             "decision_reason": self.decision_reason,
             "automation_score": round(float(self.automation_score), 6),

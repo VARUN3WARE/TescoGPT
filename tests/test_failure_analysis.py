@@ -123,6 +123,57 @@ def test_failure_analysis_refuses_incomplete_gold(tmp_path: Path) -> None:
         )
 
 
+def test_failure_ledger_preserves_a_guardrail_blocked_proposal(tmp_path: Path) -> None:
+    gold = _write_gold(tmp_path / "gold.csv")
+    registry = tmp_path / "registry.csv"
+    pd.DataFrame(
+        [
+            {"case_id": "case-0", "sample_slice": "natural"},
+            {"case_id": "case-1", "sample_slice": "challenge"},
+        ]
+    ).to_csv(registry, index=False)
+    predictions = tmp_path / "predictions.csv"
+    rows = [
+        {
+            "case_id": "case-0",
+            "system_name": "guarded-system",
+            "predicted_intent": "product_quality_or_safety",
+            "intent_confidence": 0.9,
+            "proposed_draft": "DM your full name and order number.",
+            "draft_reply": "Please stop using the product; a colleague should review this.",
+            "draft_was_replaced": True,
+            "handling_decision": "ESCALATE",
+            "decision_reason": "FOOD_SAFETY_OR_INJURY",
+        },
+        {
+            "case_id": "case-1",
+            "system_name": "guarded-system",
+            "predicted_intent": "feedback_praise_or_suggestion",
+            "intent_confidence": 0.9,
+            "proposed_draft": "Thanks for your feedback.",
+            "draft_reply": "Thanks for your feedback.",
+            "draft_was_replaced": False,
+            "handling_decision": "AUTO_HANDLE",
+            "decision_reason": "NO_ACTION_NEEDED",
+        },
+    ]
+    pd.DataFrame(rows).to_csv(predictions, index=False)
+
+    build_failure_evidence(
+        gold,
+        registry,
+        [predictions],
+        tmp_path / "events.csv",
+        tmp_path / "summary.json",
+    )
+    events = pd.read_csv(tmp_path / "events.csv")
+    blocked = events.loc[events["failure_mode"].eq("guardrail_blocked_proposal")]
+
+    assert len(blocked) == 1
+    assert "DM your full name" in blocked.iloc[0]["draft_reply"]
+    assert "private_channel_request" in blocked.iloc[0]["observed_evidence"]
+
+
 def test_failure_ledger_includes_human_reply_and_retrieval_events(tmp_path: Path) -> None:
     gold = _write_gold(tmp_path / "gold.csv")
     registry = tmp_path / "registry.csv"

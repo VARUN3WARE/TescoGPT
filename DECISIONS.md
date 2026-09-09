@@ -24,7 +24,8 @@ after the results are known.
    regression checks.
 8. **Prefer deterministic safety checks around probabilistic models.** Public PII
    requests, unsupported commitments, and critical safety phrases should not
-   depend only on an LLM confidence value.
+   depend only on an LLM confidence value. Retain blocked proposals so safety
+   claims can be audited instead of showing only sanitized outputs.
 9. **Do not use Banking77.** Its banking taxonomy does not match Tesco operations;
    adding it would increase apparent sophistication without improving validity.
 10. **Prioritize an offline reproduction path over a hosted demo.** Reviewers must

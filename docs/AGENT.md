@@ -48,7 +48,9 @@ The generated reply is independently scanned for personal-data requests,
 private-channel requests, claimed backend actions, financial promises, links,
 literal contact data, and excessive length. A flagged draft is discarded,
 replaced with a safe acknowledgement, and escalated; the triggering flags remain
-in the prediction artifact.
+in the prediction artifact. The artifact retains the original `proposed_draft`,
+the final public `draft_reply`, and `draft_was_replaced`, so a blocked generation
+is inspectable rather than hidden by the safe fallback.
 
 `automation_score` is a ranking score, not a calibrated probability. Its policy
 thresholds are frozen engineering priors until development labels exist. They

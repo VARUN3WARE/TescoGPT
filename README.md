@@ -127,6 +127,8 @@ schema as the final agent.
 
 The main path combines training-only, outcome-aware retrieval with a structured
 drafter and a deterministic policy gate that can override unsafe generations.
+Predictions retain both the proposed and final public drafts plus an explicit
+replacement flag, making guardrail interventions auditable.
 An API-backed drafter is optional and requires an explicit model ID; the
 committed guarded-template output keeps development and offline verification
 runnable without a secret. See [the architecture and trust boundaries](docs/AGENT.md).

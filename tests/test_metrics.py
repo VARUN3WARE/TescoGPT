@@ -195,5 +195,32 @@ def test_complete_evaluation_and_static_audit_write_artifacts(tmp_path: Path) ->
         == 1
     )
     assert safety["systems"]["test-system"]["flagged_draft_count"] == 1
+    assert safety["systems"]["test-system"]["guardrail_replacement_count"] == 0
     assert (tmp_path / "metrics.json").is_file()
     assert (tmp_path / "details" / "predictions_static_safety.csv").is_file()
+
+
+def test_static_audit_separates_blocked_proposal_from_public_reply(tmp_path: Path) -> None:
+    prediction_path = tmp_path / "guarded.csv"
+    pd.DataFrame(
+        [
+            {
+                "case_id": "case-0",
+                "system_name": "guarded-system",
+                "proposed_draft": "DM your full name and address.",
+                "draft_reply": "A colleague should review this.",
+                "draft_was_replaced": True,
+                "handling_decision": "ESCALATE",
+            }
+        ]
+    ).to_csv(prediction_path, index=False)
+
+    report = audit_prediction_safety(
+        [prediction_path],
+        tmp_path / "safety.json",
+        tmp_path / "details",
+    )["systems"]["guarded-system"]
+
+    assert report["flagged_draft_count"] == 0
+    assert report["unsafe_proposed_draft_count"] == 1
+    assert report["guardrail_replacement_count"] == 1

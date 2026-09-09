@@ -77,7 +77,8 @@ review for safety/injury, backend lookup, money, personal data, unavailable
 media, current facts, repeated failure/distress, and discretionary judgment. A
 draft that requests data, claims an unavailable action, promises money, embeds a
 link/contact detail, or exceeds 280 characters is discarded and replaced with a
-safe escalation draft.
+safe escalation draft. Both the blocked proposal and public replacement remain
+in the per-example artifact, while human reply scoring sees only the latter.
 
 ## 4. Evaluation protocol
 

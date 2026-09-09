@@ -108,6 +108,17 @@ def _core_prediction_events(
             raise ValueError(f"Prediction contains duplicate case IDs: {path}")
         if set(predictions["case_id"]) != set(labelled["case_id"]):
             raise ValueError(f"Prediction IDs do not exactly match gold: {path}")
+        proposal_columns = {"proposed_draft", "draft_was_replaced"}
+        present_proposal_columns = proposal_columns & set(predictions.columns)
+        if present_proposal_columns and present_proposal_columns != proposal_columns:
+            raise ValueError("Prediction must contain both proposal-audit columns")
+        has_proposal_audit = present_proposal_columns == proposal_columns
+        if has_proposal_audit:
+            replacement_values = (
+                predictions["draft_was_replaced"].str.strip().str.lower()
+            )
+            if not replacement_values.isin({"true", "false"}).all():
+                raise ValueError("draft_was_replaced must contain only true or false")
         systems = sorted(set(predictions["system_name"]))
         if len(systems) != 1:
             raise ValueError(f"Prediction must contain one system: {path}")
@@ -134,6 +145,21 @@ def _core_prediction_events(
                 "draft_reply": str(row["draft_reply"]),
                 "artifact_source": path.name,
             }
+            if has_proposal_audit and str(row["draft_was_replaced"]).lower() == "true":
+                proposed_draft = str(row["proposed_draft"])
+                proposal_flags = inspect_reply(proposed_draft)
+                _append_event(
+                    events,
+                    subsystem="draft_safety",
+                    failure_mode="guardrail_blocked_proposal",
+                    severity="high",
+                    observed_evidence=(
+                        "blocked_flags="
+                        + (";".join(proposal_flags) or "unclassified")
+                        + f"; public_replacement={row['draft_reply']}"
+                    ),
+                    **{**common, "draft_reply": proposed_draft},
+                )
             if row["intent_label"] != row["predicted_intent"]:
                 _append_event(
                     events,

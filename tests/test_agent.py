@@ -74,6 +74,10 @@ def test_final_gate_replaces_unsafe_draft_and_escalates() -> None:
 
     assert result.handling_decision == "ESCALATE"
     assert result.decision_reason == "PERSONAL_DATA_OR_PRIVATE_CHANNEL"
+    assert result.proposed_draft == (
+        "DM your full name and address and I've credited your account."
+    )
+    assert result.draft_was_replaced
     assert "DM" not in result.draft_reply
     assert "draft_guardrail:personal_data_request" in result.safety_flags
 
@@ -90,6 +94,8 @@ def test_template_agent_auto_handles_plain_feedback() -> None:
 
     assert result.handling_decision == "AUTO_HANDLE"
     assert result.decision_reason == "NO_ACTION_NEEDED"
+    assert result.proposed_draft == result.draft_reply
+    assert not result.draft_was_replaced
     assert result.evidence_case_ids == ("train-1",)
 
 

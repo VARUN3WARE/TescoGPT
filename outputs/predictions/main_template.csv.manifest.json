@@ -6,8 +6,8 @@
   "input_file": "golden_candidates.csv",
   "input_sha256": "1037c7e3a74c000889487f7a69da13f2a2f5df9f929b081cc054fe502cc29ed7",
   "prediction_file": "main_template.csv",
-  "prediction_schema_version": 1,
-  "prediction_sha256": "addbb0e20a8002d37314bdf4b3d12aa504f7e68f7a8ef15f61e34db3c6cc5742",
+  "prediction_schema_version": 2,
+  "prediction_sha256": "b7f883b3c6a618d10f4dee241927f14368b1144cba687a4c9b2619a6aa702091",
   "row_count": 200,
   "system": "tescogpt_guarded_template_v1_policy_v1"
 }
