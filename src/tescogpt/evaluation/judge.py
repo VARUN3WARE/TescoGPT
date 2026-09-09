@@ -52,6 +52,8 @@ class JudgeRating:
             raise ValueError("overall_pass violates the frozen reply-quality rule")
         if not self.rationale.strip():
             raise ValueError("Judge rationale must not be blank")
+        if len(self.rationale) > 500:
+            raise ValueError("Judge rationale must not exceed 500 characters")
 
 
 _RUBRIC = """Score each dimension 0, 1, or 2.
@@ -80,10 +82,9 @@ _JUDGE_SCHEMA = {
         "critical_error_tags": {
             "type": "array",
             "items": {"type": "string", "enum": list(CRITICAL_ERROR_TAGS)},
-            "uniqueItems": True,
         },
         "overall_pass": {"type": "string", "enum": ["PASS", "FAIL"]},
-        "rationale": {"type": "string", "minLength": 1, "maxLength": 500},
+        "rationale": {"type": "string"},
     },
     "required": [
         *RATING_DIMENSIONS,

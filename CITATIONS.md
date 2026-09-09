@@ -72,8 +72,10 @@ behavior, and trust gates are pre-registered in `docs/EVALUATION.md` and
 
 - The optional structured drafter and reply judge follow OpenAI's [Responses
   API reference](https://developers.openai.com/api/reference/cli/resources/responses/methods/create)
-  and use the official Python package. No model response is represented as a
-  human label, and no API-generated result is currently claimed.
+  and [Structured Outputs
+  guide](https://developers.openai.com/api/docs/guides/structured-outputs), and
+  use the pinned official Python package. No model response is represented as
+  a human label, and no API-generated result is currently claimed.
 - Runtime dependencies are NumPy and pandas; development uses pytest and Ruff.
   Exact compatible ranges are declared in `pyproject.toml`. Their respective
   licenses apply to those packages; TescoGPT's own source is MIT licensed.

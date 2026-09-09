@@ -334,6 +334,16 @@ def test_judge_rating_rejects_inconsistent_pass() -> None:
         )
 
 
+def test_judge_rating_rejects_an_overlong_rationale() -> None:
+    with pytest.raises(ValueError, match="must not exceed 500 characters"):
+        JudgeRating(
+            **{dimension: 2 for dimension in RATING_DIMENSIONS},
+            critical_error_tags=(),
+            overall_pass="PASS",
+            rationale="x" * 501,
+        )
+
+
 def test_judge_manifest_contains_request_level_provenance(tmp_path: Path) -> None:
     review = tmp_path / "review.csv"
     row = {

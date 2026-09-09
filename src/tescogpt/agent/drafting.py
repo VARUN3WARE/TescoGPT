@@ -126,11 +126,10 @@ _DRAFT_SCHEMA = {
     "properties": {
         "predicted_intent": {"type": "string", "enum": list(INTENT_LABELS)},
         "intent_confidence": {"type": "number", "minimum": 0, "maximum": 1},
-        "draft_reply": {"type": "string", "minLength": 1, "maxLength": 280},
+        "draft_reply": {"type": "string"},
         "used_evidence_case_ids": {
             "type": "array",
             "items": {"type": "string"},
-            "uniqueItems": True,
         },
     },
     "required": [
