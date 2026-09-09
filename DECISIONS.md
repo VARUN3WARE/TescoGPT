@@ -16,9 +16,11 @@ after the results are known.
    retrieval and generation quality.
 5. **Keep a natural slice and a challenge slice separate.** A balanced stress set
    is useful for finding failures but cannot estimate real traffic performance.
-6. **Make risk at a stated coverage the routing headline.** Escalation accuracy is
+6. **Pre-register a multi-metric offline trust gate.** Escalation accuracy is
    misleading because an always-escalate system can score well while automating
-   nothing.
+   nothing. The frozen gate combines coverage, an unsafe-auto confidence bound,
+   observed failures, reply quality, intent performance, and retrieval quality;
+   a pass recommends only a monitored shadow-mode trial.
 7. **Freeze policy thresholds before reading golden labels.** Current values are
    documented engineering priors, not fitted probabilities. Any later tuning
    requires a separately labelled development set; the gold set remains final-only.

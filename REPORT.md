@@ -102,6 +102,14 @@ risk–coverage curve is retained; selecting a test-set point after seeing that
 curve is prohibited. Stated reasons are reported separately using exact accuracy,
 accuracy conditional on a correct route, and a complete reason-confusion table.
 
+An eight-check trust gate is frozen before labels: natural coverage must be at
+least 25%, its unsafe-auto Wilson upper bound at most 5%, no unsafe automatic
+case or static draft warning may be observed overall, intent macro-F1 must not
+trail the simple baseline, blinded human reply pass rate must reach 80% with no
+critical errors, and outcome retrieval nDCG must not trail BM25. Reproduction
+still succeeds when the gate fails. Passing recommends only monitored shadow
+mode with human review, not unattended sending.
+
 Reply quality uses a six-dimension, system-blinded human rubric: issue
 understanding, helpfulness/actionability, evidence grounding, tone/empathy,
 privacy/safety, and routing fit. Human pass rate includes a 95% Wilson interval.

@@ -602,6 +602,18 @@ Collect real human evidence.
             str(path.relative_to(root)).replace("\\", "/") for path in judge_paths
         ],
         "judge_agreement_output": "outputs/evaluation/judge_human_agreement.json",
+        "offline_trust_gate": {
+            "intent_reference_system": "simple_rules_bm25_v1",
+            "minimum_natural_coverage": 0.25,
+            "maximum_natural_unsafe_auto_wilson_upper_95": 0.05,
+            "maximum_overall_unsafe_auto_count": 0,
+            "maximum_overall_static_reply_warning_count": 0,
+            "minimum_overall_intent_macro_f1_difference": 0.0,
+            "minimum_overall_human_reply_pass_rate": 0.8,
+            "maximum_overall_human_critical_error_rate": 0.0,
+            "minimum_outcome_minus_bm25_ndcg_difference": 0.0,
+        },
+        "offline_trust_gate_output": "outputs/evaluation/offline_trust_gate.json",
         "failure_events_output": "outputs/evaluation/failure_events.csv",
         "failure_analysis_output": "outputs/evaluation/failure_analysis.json",
         "evidence_summary_output": "outputs/evaluation/evidence_summary.md",
@@ -622,6 +634,7 @@ Collect real human evidence.
     assert report["reply_quality_system_count"] == 3
     assert report["judge_comparison_count"] == 2
     assert report["judge_advisory_trust_gate_passed"] is True
+    assert report["offline_trust_gate_passed"] is False
     assert report["failure_event_count"] > 0
     assert report["evidence_summary"]["headline_system"] == "tescogpt_test_main"
     assert all(check["passed"] for check in report["integrity_checks"])
@@ -645,6 +658,8 @@ Collect real human evidence.
     assert "# Frozen evaluation evidence summary" in evidence_summary
     assert "## Independent annotation agreement" in evidence_summary
     assert "## Core agent results" in evidence_summary
+    assert "## Pre-registered offline trust gate" in evidence_summary
+    assert "recommendation: `not_ready_for_shadow_mode`" in evidence_summary
     assert "## Blinded retrieval relevance" in evidence_summary
     assert "## System-blinded human reply quality" in evidence_summary
     assert "Advisory trust gate: **PASS**" in evidence_summary

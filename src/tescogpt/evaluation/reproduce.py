@@ -15,6 +15,7 @@ from tescogpt.evaluation.failure_analysis import build_failure_evidence
 from tescogpt.evaluation.judge import judge_human_agreement, validate_judge_output
 from tescogpt.evaluation.labels import validate_annotation_artifacts, validate_annotations
 from tescogpt.evaluation.metrics import evaluate_predictions
+from tescogpt.evaluation.readiness import evaluate_offline_trust_gate
 from tescogpt.evaluation.reply_review import (
     evaluate_reply_quality,
     validate_reply_ratings,
@@ -578,7 +579,27 @@ def reproduce_project(
     )
     report["failure_event_count"] = failure_report["event_count"]
 
-    if retrieval_metrics is not None and reply_quality is not None and judge_report is not None:
+    offline_trust_gate = None
+    trust_thresholds = config.get("offline_trust_gate")
+    if retrieval_metrics is not None and reply_quality is not None and trust_thresholds:
+        offline_trust_gate = evaluate_offline_trust_gate(
+            metrics=metrics,
+            retrieval_metrics=retrieval_metrics,
+            reply_quality=reply_quality,
+            headline_system=headline_system,
+            thresholds=trust_thresholds,
+            output_path=_resolve(root, config["offline_trust_gate_output"]),
+        )
+        report["offline_trust_gate_passed"] = offline_trust_gate["passed"]
+    elif config["status"] == "FINAL":
+        raise ValueError("FINAL config requires frozen offline trust thresholds")
+
+    if (
+        retrieval_metrics is not None
+        and reply_quality is not None
+        and judge_report is not None
+        and offline_trust_gate is not None
+    ):
         evidence_summary = write_evidence_summary(
             metrics=metrics,
             annotation_agreement=agreement,
@@ -586,6 +607,7 @@ def reproduce_project(
             reply_quality=reply_quality,
             judge_agreement=judge_report,
             failure_analysis=failure_report,
+            offline_trust_gate=offline_trust_gate,
             headline_system=headline_system,
             output_path=_resolve(root, config["evidence_summary_output"]),
         )

@@ -65,6 +65,7 @@ def write_evidence_summary(
     reply_quality: dict[str, Any],
     judge_agreement: dict[str, Any],
     failure_analysis: dict[str, Any],
+    offline_trust_gate: dict[str, Any],
     headline_system: str,
     output_path: str | Path,
 ) -> dict[str, Any]:
@@ -132,6 +133,26 @@ def write_evidence_summary(
             f"| {row['competitor']} | {row['slice']} | {row['difference']:.3f} | "
             f"{row['lower_95']:.3f}–{row['upper_95']:.3f} |"
         )
+
+    lines.extend(
+        [
+            "",
+            "## Pre-registered offline trust gate",
+            "",
+            f"Result: **{'PASS' if offline_trust_gate['passed'] else 'FAIL'}**; "
+            f"recommendation: `{offline_trust_gate['recommendation']}`.",
+            "",
+            "| Check | Actual | Criterion | Result |",
+            "|---|---:|---:|---:|",
+        ]
+    )
+    for check in offline_trust_gate["checks"]:
+        actual = "—" if check["actual"] is None else f"{check['actual']:.3f}"
+        lines.append(
+            f"| {check['name']} | {actual} | {check['criterion']} | "
+            f"{'PASS' if check['passed'] else 'FAIL'} |"
+        )
+    lines.extend(["", offline_trust_gate["scope_limit"]])
 
     retrieval_systems = retrieval_metrics["systems"]
     retrieval_example = next(iter(retrieval_systems.values()))

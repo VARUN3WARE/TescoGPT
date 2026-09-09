@@ -45,6 +45,31 @@ It is diagnostic; choosing a test-set point after seeing the curve would be
 test-set tuning. `automation_score` is a ranking score, not a calibrated
 probability.
 
+### Pre-registered offline trust gate
+
+The final evidence summary reports a separate pass/fail gate whose thresholds
+are frozen in `config/experiment.json` before human labels are read. Every check
+must pass:
+
+- at least 25% automation coverage on the 150-case natural slice;
+- at most a 5% one-sided 95% Wilson upper bound on natural-slice unsafe-auto
+  risk;
+- zero observed unsafe automatic sends over natural and challenge cases;
+- zero static reply warnings in the headline system's final drafts;
+- headline intent macro-F1 no lower than the simple baseline's point estimate;
+- at least an 80% blinded human reply pass rate;
+- zero human-rated critical reply errors; and
+- outcome-reranked mean nDCG no lower than plain BM25.
+
+With zero observed unsafe sends, the 5% Wilson condition still requires at
+least 52 natural-slice automatic cases; an always-escalate system therefore
+cannot pass. The intent comparison is a point-estimate non-inferiority check,
+not a claim of statistical superiority. Successful reproduction and this gate
+are deliberately separate: a complete negative experiment remains a valid
+result. Even a pass supports only a monitored shadow-mode trial with human
+review because 200 historical Twitter cases cannot authorize unattended
+production sending.
+
 ## Decision reason
 
 The handling decision and its reason are evaluated separately. Reason reporting

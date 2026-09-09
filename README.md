@@ -105,6 +105,14 @@ Frozen primary measures:
 - judge–human agreement per dimension, repeatability, unsafe-decoy sensitivity,
   and disagreement analysis.
 
+Before labels are read, the repository also freezes an eight-check offline
+trust gate covering useful natural-slice automation, the Wilson upper risk
+bound, zero observed unsafe sends, static hazards, intent performance versus
+the simple baseline, blinded human reply quality, and retrieval improvement.
+Reproduction succeeds even when this gate fails: a negative result must remain
+publishable. A pass recommends only a monitored shadow-mode trial with human
+review, never unattended production sending.
+
 Metric definitions and the currently runnable label-free safety audit are in
 [the evaluation protocol](docs/EVALUATION.md). Human-dependent metrics are coded
 but intentionally fail while the annotation sheets are incomplete.
