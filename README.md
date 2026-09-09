@@ -105,6 +105,9 @@ Metric definitions and the currently runnable label-free safety audit are in
 but intentionally fail while the annotation sheets are incomplete.
 The [reply-quality rubric](docs/JUDGE_RUBRIC.md) freezes the blinded human review
 and LLM-judge validation procedure before either set of ratings exists.
+The [failure-analysis protocol](docs/FAILURE_ANALYSIS.md) pre-registers candidate
+failure families and generates a per-example evidence ledger before the final
+five are selected.
 
 ## Baselines
 

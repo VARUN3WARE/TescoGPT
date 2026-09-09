@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from tescogpt.evaluation.agreement import annotation_agreement
+from tescogpt.evaluation.failure_analysis import build_failure_evidence
 from tescogpt.evaluation.judge import judge_human_agreement, validate_judge_output
 from tescogpt.evaluation.labels import validate_annotations
 from tescogpt.evaluation.metrics import evaluate_predictions
@@ -369,6 +370,35 @@ def reproduce_project(
         report["judge_comparison_count"] = len(judge_report["comparisons"])
     elif config["status"] == "FINAL":
         raise ValueError("FINAL config requires human reply ratings and judge outputs")
+
+    frozen_reply_review = None
+    frozen_reply_key = None
+    if human_review:
+        reply_manifest = json.loads(
+            _resolve(root, config["reply_review_manifest"]).read_text(encoding="utf-8")
+        )
+        if reply_manifest.get("label_status") == "HUMAN_RATED":
+            frozen_reply_review = _resolve(root, human_review)
+            frozen_reply_key = _resolve(root, config["reply_review_key"])
+    frozen_retrieval_review = None
+    frozen_retrieval_key = None
+    if relevance_manifest.get("label_status") == "HUMAN_LABELED":
+        frozen_retrieval_review = _resolve(root, config["retrieval_review_file"])
+        frozen_retrieval_key = _resolve(root, config["retrieval_review_key"])
+    failure_report = build_failure_evidence(
+        round_one,
+        _resolve(root, config["registry_file"]),
+        prediction_paths,
+        _resolve(root, config["failure_events_output"]),
+        _resolve(root, config["failure_analysis_output"]),
+        reply_review_path=frozen_reply_review,
+        reply_key_path=frozen_reply_key,
+        retrieval_review_path=frozen_retrieval_review,
+        retrieval_key_path=frozen_retrieval_key,
+        retrieval_top_k=int(relevance_manifest["top_k"]),
+        judge_paths=[_resolve(root, value) for value in judge_outputs],
+    )
+    report["failure_event_count"] = failure_report["event_count"]
 
     elapsed = time.perf_counter() - started
     report["elapsed_seconds"] = round(elapsed, 3)

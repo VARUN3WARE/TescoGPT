@@ -31,6 +31,8 @@
   "reply_reference_system": null,
   "judge_output_files": [],
   "judge_agreement_output": "outputs/evaluation/judge_human_agreement.json",
+  "failure_events_output": "outputs/evaluation/failure_events.csv",
+  "failure_analysis_output": "outputs/evaluation/failure_analysis.json",
   "headline_output": "outputs/evaluation/headline.md",
   "reproduction_output": "outputs/evaluation/reproduction.json"
 }

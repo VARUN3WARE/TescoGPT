@@ -10,6 +10,7 @@ from pathlib import Path
 from tescogpt.data.audit import audit_conversations
 from tescogpt.data.threads import extract_brand_conversations
 from tescogpt.evaluation.agreement import annotation_agreement
+from tescogpt.evaluation.failure_analysis import build_failure_evidence
 from tescogpt.evaluation.judge import judge_human_agreement, judge_review_sheet
 from tescogpt.evaluation.labels import (
     freeze_human_annotations,
@@ -442,6 +443,32 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     retrieval_evaluate.add_argument("--top-k", type=int, default=3)
 
+    failure_analysis = subparsers.add_parser(
+        "failure-analysis",
+        help="Create a per-example failure ledger with explicit sample denominators.",
+    )
+    failure_analysis.add_argument("--gold", type=Path, required=True)
+    failure_analysis.add_argument(
+        "--registry", type=Path, default=Path("data/golden/golden_candidates.csv")
+    )
+    failure_analysis.add_argument("--predictions", type=Path, nargs="+", required=True)
+    failure_analysis.add_argument(
+        "--events",
+        type=Path,
+        default=Path("outputs/evaluation/failure_events.csv"),
+    )
+    failure_analysis.add_argument(
+        "--summary",
+        type=Path,
+        default=Path("outputs/evaluation/failure_analysis.json"),
+    )
+    failure_analysis.add_argument("--reply-review", type=Path)
+    failure_analysis.add_argument("--reply-key", type=Path)
+    failure_analysis.add_argument("--retrieval-review", type=Path)
+    failure_analysis.add_argument("--retrieval-key", type=Path)
+    failure_analysis.add_argument("--retrieval-top-k", type=int, default=3)
+    failure_analysis.add_argument("--judge-outputs", type=Path, nargs="*", default=[])
+
     return parser
 
 
@@ -677,6 +704,23 @@ def main(argv: Sequence[str] | None = None) -> None:
             output_path=args.output,
             top_k=args.top_k,
             manifest_path=args.manifest,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.command == "failure-analysis":
+        report = build_failure_evidence(
+            gold_path=args.gold,
+            registry_path=args.registry,
+            prediction_paths=args.predictions,
+            events_path=args.events,
+            summary_path=args.summary,
+            reply_review_path=args.reply_review,
+            reply_key_path=args.reply_key,
+            retrieval_review_path=args.retrieval_review,
+            retrieval_key_path=args.retrieval_key,
+            retrieval_top_k=args.retrieval_top_k,
+            judge_paths=args.judge_outputs,
         )
         print(json.dumps(report, indent=2, sort_keys=True))
         return

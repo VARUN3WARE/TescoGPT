@@ -110,7 +110,7 @@ def validate_retrieval_review(
     }
 
 
-def _validate_identity_key(
+def validate_retrieval_review_key(
     review: pd.DataFrame,
     key: pd.DataFrame,
     *,
@@ -156,7 +156,7 @@ def freeze_retrieval_review(
     review = pd.read_csv(review_file, dtype="string", keep_default_na=False)
     key = pd.read_csv(key_file, dtype="string", keep_default_na=False)
     manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
-    _validate_identity_key(review, key, top_k=int(manifest["top_k"]))
+    validate_retrieval_review_key(review, key, top_k=int(manifest["top_k"]))
     if _sha256(key_file) != manifest.get("identity_key_sha256"):
         raise ValueError("Retrieval identity key changed after initialization")
     content_hash = _frame_sha256(review, IMMUTABLE_REVIEW_COLUMNS)
@@ -299,7 +299,7 @@ def initialize_retrieval_review(
     review.to_csv(review_file, index=False, lineterminator="\n")
     key.to_csv(key_file, index=False, lineterminator="\n")
     validate_retrieval_review(review_file)
-    _validate_identity_key(review, key, top_k=top_k)
+    validate_retrieval_review_key(review, key, top_k=top_k)
     manifest = {
         "retrieval_review_schema_version": 1,
         "label_status": "UNLABELED",
@@ -343,7 +343,7 @@ def evaluate_retrieval_review(
     validate_retrieval_review(review_path, require_complete=True)
     review = pd.read_csv(review_path, dtype="string", keep_default_na=False)
     key = pd.read_csv(key_path, dtype="string", keep_default_na=False)
-    _validate_identity_key(review, key, top_k=top_k)
+    validate_retrieval_review_key(review, key, top_k=top_k)
     if manifest_path is not None:
         manifest = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
         if manifest.get("label_status") != "HUMAN_LABELED":

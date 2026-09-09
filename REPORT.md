@@ -134,7 +134,7 @@ warnings. These counts validate deterministic checks, not overall reply quality.
 
 These are traceable failure candidates identified before reading gold labels.
 Final top-five frequencies and examples will be selected from frozen human
-errors rather than from these hypotheses alone.
+errors and the generated event ledger rather than from these hypotheses alone.
 
 1. **Polite words can dominate intent rules.** In `tesco-2855864`, a question
    about salmon weight and a vertebra is predicted as feedback because it ends
