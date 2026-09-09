@@ -155,6 +155,12 @@ To finish the human-label checkpoint, annotator one completes all 200 rows in
 `labels-check --require-complete`. AI-generated labels do not satisfy this
 project's golden-set requirement.
 
+Excel-friendly copies are available in `outputs/annotation_workbook`. They have
+dropdowns, an embedded codebook, frozen identifiers, and live progress counts.
+The two annotators must use separate workbooks and must not view each other's
+labels. After labelling, save only the `Annotations` sheet as CSV UTF-8 over the
+corresponding file in `data/golden`, then run `labels-check --require-complete`.
+
 Historical replies are retrieved only from the training period and reranked by
 weak follow-up evidence plus static safety penalties. The full method, its
 unfitted scoring formula, and its limitations are in

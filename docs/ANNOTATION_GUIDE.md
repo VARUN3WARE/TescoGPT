@@ -204,3 +204,15 @@ Disagreements are preserved before adjudication and reported with Cohen's kappa.
 - Asking for an address, email, phone number, Clubcard number, or order number in
   the public draft.
 - Assuming a 2017 URL, opening time, stock level, or refund policy is current.
+
+## Excel working copies
+
+`outputs/annotation_workbook/round1_annotation.xlsx` contains all 200 primary
+rows. `round2_annotation.xlsx` contains the independent 60-row overlap. Yellow
+cells are human inputs; dropdowns cover primary/secondary intent, handling, and
+reason code. The progress cells count primary-intent completion.
+
+Give each workbook to a different annotator. Do not place completed round-one
+labels into the round-two workbook. When finished, save the `Annotations` tab as
+CSV UTF-8 to the corresponding `data/golden/round*_annotations.csv` path and run
+the repository validator. The CSV remains the canonical evaluation artifact.
