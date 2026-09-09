@@ -1,0 +1,309 @@
+{
+  "important_limitation": "Patterns make broad issue families inspectable but are neither discovered clusters nor gold labels. Counts overlap and do not estimate intent accuracy.",
+  "input_file": "tesco_cases.csv",
+  "input_sha256": "dce80d676b7a1979b5a8454b24ef86d5be12c2fbbad26a2ef497b627e65481bb",
+  "multi_theme_case_count": 2276,
+  "scope": "training cases only; lexical diagnostics, not labels",
+  "seed": 20260913,
+  "taxonomy_audit_schema_version": 1,
+  "theme_count": 9,
+  "themes": {
+    "delivery_or_collection": {
+      "examples": [
+        {
+          "case_id": "tesco-2508669",
+          "message": "Thought I’d try @Tesco home delivery for first time rather than my @customer to see if more cost effective. big mistake. Wasn’t any cheaper once I paid the “service charge” order was 15mins late, no heads up until driver phoned as was lost. #dissapointingservice"
+        },
+        {
+          "case_id": "tesco-1109002",
+          "message": "When you can’t sleep so you do your @Tesco shop at 4am for delivery the same day.... #winning 👌🏻 #itsthesmallthings #reallyneedtosleepnow"
+        },
+        {
+          "case_id": "tesco-2403061",
+          "message": "@Tesco so when you claim its next day delivery that's in fact a big lie!!!!"
+        }
+      ],
+      "match_count": 1320,
+      "match_share": 0.07610262323436148,
+      "patterns": [
+        "\\bdeliver(?:y|ed|ies)?\\b",
+        "\\bclick\\s*(?:&|and)?\\s*collect\\b",
+        "\\bdelivery slot\\b",
+        "\\bsubstitut(?:e|ed|ion)s?\\b",
+        "\\bmissing (?:bag|item|order)s?\\b"
+      ]
+    },
+    "feedback_praise_or_suggestion": {
+      "examples": [
+        {
+          "case_id": "tesco-2143200",
+          "message": "@customer @Tesco Before we, as a family, decide where to buy our Christmas Turkey, can you please tell me if your turkeys are Halal? Thank you."
+        },
+        {
+          "case_id": "tesco-1818642",
+          "message": "@Tesco Thanks for clarifying 🤔"
+        },
+        {
+          "case_id": "tesco-2466526",
+          "message": "Thank you @Tesco for making this ice cream! #wheatfree #glutenfree #vegetarian <media_or_link> … <media_or_link>"
+        }
+      ],
+      "match_count": 2536,
+      "match_share": 0.14620928221389448,
+      "patterns": [
+        "\\b(?:thank you|thanks|thx)\\b",
+        "\\b(?:love|great|brilliant|amazing|excellent)\\b",
+        "\\b(?:suggestion|feedback|well done)\\b"
+      ]
+    },
+    "online_account_or_checkout": {
+      "examples": [
+        {
+          "case_id": "tesco-987887",
+          "message": "@Tesco Hi guys, I've found a 'Colleague Room Payment Card' on the pavement outside. Please could you advise where it should be returned to?"
+        },
+        {
+          "case_id": "tesco-1722189",
+          "message": "Really struggling with online shop since update, @Tesco. Tons of products no longer available so I have to go to the shop. Kinda pointless!"
+        },
+        {
+          "case_id": "tesco-264619",
+          "message": "@Tesco - 3-5 days for a refund that I was told wouldn't come out of my account in the first place. 8 days later, still no refund. #Shocking"
+        }
+      ],
+      "match_count": 1458,
+      "match_share": 0.08405880657249928,
+      "patterns": [
+        "\\b(?:login|log in|password|account)\\b",
+        "\\b(?:website|web site|app|online)\\b",
+        "\\b(?:checkout|check out|basket|payment)\\b",
+        "\\b(?:error|signs? me out|crash(?:ed|es|ing)?)\\b"
+      ]
+    },
+    "pricing_promotion_or_clubcard": {
+      "examples": [
+        {
+          "case_id": "tesco-2508669",
+          "message": "Thought I’d try @Tesco home delivery for first time rather than my @customer to see if more cost effective. big mistake. Wasn’t any cheaper once I paid the “service charge” order was 15mins late, no heads up until driver phoned as was lost. #dissapointingservice"
+        },
+        {
+          "case_id": "tesco-1619662",
+          "message": "@Tesco @Tesco... seen as I can't make it in to collect what was offered... could you send time or a gift card"
+        },
+        {
+          "case_id": "tesco-862023",
+          "message": "@sainsburys I’m guessing you’ll offer me a much better servce than @Tesco?! After 7 years of loyal shopping I am DONE! #getmeanectarcard"
+        }
+      ],
+      "match_count": 1058,
+      "match_share": 0.06099740559238974,
+      "patterns": [
+        "\\bclubcard\\b",
+        "\\b(?:price|priced|charged|cost)\\b",
+        "\\b(?:offer|promotion|promo|discount)\\b",
+        "\\b(?:voucher|coupon|points|gift card)\\b"
+      ]
+    },
+    "product_availability": {
+      "examples": [
+        {
+          "case_id": "tesco-2145466",
+          "message": "@Tesco Hi there, I was just wondering if I could check if COD WW2 is in stock in your Hexham store, I went in a few days ago and it wasn't, just wondering if that's still the case?"
+        },
+        {
+          "case_id": "tesco-1722189",
+          "message": "Really struggling with online shop since update, @Tesco. Tons of products no longer available so I have to go to the shop. Kinda pointless!"
+        },
+        {
+          "case_id": "tesco-1041469",
+          "message": "@Tesco your Uxbridge metro store no longer sell Tesco's own salt + vinegar chipsticks, do you know if they'll be back?? :("
+        }
+      ],
+      "match_count": 1023,
+      "match_share": 0.058979533006630155,
+      "patterns": [
+        "\\b(?:in|out of) stock\\b",
+        "\\b(?:stock|sell|sold|available|availability)\\b",
+        "\\bdiscontinu(?:e|ed)\\b",
+        "\\bbring (?:it|them|this|these)?\\s*back\\b"
+      ]
+    },
+    "product_information": {
+      "examples": [
+        {
+          "case_id": "tesco-2466526",
+          "message": "Thank you @Tesco for making this ice cream! #wheatfree #glutenfree #vegetarian <media_or_link> … <media_or_link>"
+        },
+        {
+          "case_id": "tesco-2473831",
+          "message": "How shocked was I when I popped into my decent size @Tesco last night to buy a tin opener and - nothing? Isn't that a basic thing they would stock?!!"
+        },
+        {
+          "case_id": "tesco-2291833",
+          "message": "@tesco - think your butcher counter staff need more practice. 2x400g steaks ordered do not equal 580g total weight delivered 😞"
+        }
+      ],
+      "match_count": 509,
+      "match_share": 0.02934563274718939,
+      "patterns": [
+        "\\b(?:ingredient|nutrition|calorie)s?\\b",
+        "\\b(?:vegan|vegetarian|allergen|allergy)\\b",
+        "\\b(?:contain|suitable for|free from)\\b",
+        "\\b(?:weight|size|cook(?:ing)?|prepar(?:e|ation))\\b"
+      ]
+    },
+    "product_quality_or_safety": {
+      "examples": [
+        {
+          "case_id": "tesco-1979160",
+          "message": "Can someone tell me why the jelly I just bought from Tesco has mould inside?! @Tesco <media_or_link>"
+        },
+        {
+          "case_id": "tesco-1024094",
+          "message": "@Tesco ill you sell the Apple watch series 3 anytime soon?"
+        },
+        {
+          "case_id": "tesco-1476542",
+          "message": "@Tesco Hi <name_redacted>, sadly I do not live in Loughborough and was travelling down to London. I have times and photos of my injured knee."
+        }
+      ],
+      "match_count": 408,
+      "match_share": 0.023522628999711734,
+      "patterns": [
+        "\\b(?:ill|sick|poison(?:ed|ing)?)\\b",
+        "\\b(?:mould|mold|rotten|raw|stale)\\b",
+        "\\b(?:glass|bone|foreign object)\\b",
+        "\\b(?:damag(?:e|ed)|broken|leak(?:ing|ed)?)\\b",
+        "\\b(?:allergic reaction|chok(?:e|ed|ing)|injur(?:y|ed))\\b"
+      ]
+    },
+    "refund_return_or_exchange": {
+      "examples": [
+        {
+          "case_id": "tesco-987887",
+          "message": "@Tesco Hi guys, I've found a 'Colleague Room Payment Card' on the pavement outside. Please could you advise where it should be returned to?"
+        },
+        {
+          "case_id": "tesco-264619",
+          "message": "@Tesco - 3-5 days for a refund that I was told wouldn't come out of my account in the first place. 8 days later, still no refund. #Shocking"
+        },
+        {
+          "case_id": "tesco-751556",
+          "message": "Why have all of the Brazil Nuts in @Tesco been replaced with Pecans this year??? 🤔 Not a single Brazil Nut in sight! <media_or_link>"
+        }
+      ],
+      "match_count": 501,
+      "match_share": 0.0288844047275872,
+      "patterns": [
+        "\\brefund(?:ed|ing|s)?\\b",
+        "\\breturn(?:ed|ing|s)?\\b",
+        "\\breplac(?:e|ed|ement|ing)s?\\b",
+        "\\bexchange(?:d|s)?\\b",
+        "\\bmoney back\\b"
+      ]
+    },
+    "store_or_staff_experience": {
+      "examples": [
+        {
+          "case_id": "tesco-987887",
+          "message": "@Tesco Hi guys, I've found a 'Colleague Room Payment Card' on the pavement outside. Please could you advise where it should be returned to?"
+        },
+        {
+          "case_id": "tesco-740855",
+          "message": "Class 3 had a fantastic time at @Tesco yesterday on the farm to fork trail. They looked at and tried a variety of different foods across the store including the bakery and fish department! 🐟 🍞 🥒 🍖 <media_or_link>"
+        },
+        {
+          "case_id": "tesco-2145466",
+          "message": "@Tesco Hi there, I was just wondering if I could check if COD WW2 is in stock in your Hexham store, I went in a few days ago and it wasn't, just wondering if that's still the case?"
+        }
+      ],
+      "match_count": 2658,
+      "match_share": 0.1532430095128279,
+      "patterns": [
+        "\\b(?:staff|cashier|colleague|manager)\\b",
+        "\\b(?:queue|trolley|parking|toilet|cleanliness)\\b",
+        "\\b(?:store|shop|supermarket)\\b",
+        "\\bopening (?:hour|time)s?\\b"
+      ]
+    }
+  },
+  "top_theme_overlaps": [
+    {
+      "count": 353,
+      "left_theme": "store_or_staff_experience",
+      "right_theme": "feedback_praise_or_suggestion"
+    },
+    {
+      "count": 314,
+      "left_theme": "online_account_or_checkout",
+      "right_theme": "store_or_staff_experience"
+    },
+    {
+      "count": 231,
+      "left_theme": "product_availability",
+      "right_theme": "store_or_staff_experience"
+    },
+    {
+      "count": 189,
+      "left_theme": "delivery_or_collection",
+      "right_theme": "online_account_or_checkout"
+    },
+    {
+      "count": 183,
+      "left_theme": "delivery_or_collection",
+      "right_theme": "store_or_staff_experience"
+    },
+    {
+      "count": 174,
+      "left_theme": "pricing_promotion_or_clubcard",
+      "right_theme": "store_or_staff_experience"
+    },
+    {
+      "count": 158,
+      "left_theme": "pricing_promotion_or_clubcard",
+      "right_theme": "online_account_or_checkout"
+    },
+    {
+      "count": 144,
+      "left_theme": "delivery_or_collection",
+      "right_theme": "feedback_praise_or_suggestion"
+    },
+    {
+      "count": 130,
+      "left_theme": "product_availability",
+      "right_theme": "online_account_or_checkout"
+    },
+    {
+      "count": 122,
+      "left_theme": "online_account_or_checkout",
+      "right_theme": "feedback_praise_or_suggestion"
+    },
+    {
+      "count": 122,
+      "left_theme": "pricing_promotion_or_clubcard",
+      "right_theme": "feedback_praise_or_suggestion"
+    },
+    {
+      "count": 113,
+      "left_theme": "refund_return_or_exchange",
+      "right_theme": "store_or_staff_experience"
+    },
+    {
+      "count": 109,
+      "left_theme": "product_availability",
+      "right_theme": "feedback_praise_or_suggestion"
+    },
+    {
+      "count": 80,
+      "left_theme": "delivery_or_collection",
+      "right_theme": "product_availability"
+    },
+    {
+      "count": 76,
+      "left_theme": "product_information",
+      "right_theme": "feedback_praise_or_suggestion"
+    }
+  ],
+  "training_case_count": 17345,
+  "unmatched_case_count": 8597
+}

@@ -8,6 +8,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from tescogpt.data.audit import audit_conversations
+from tescogpt.data.taxonomy_audit import audit_taxonomy_themes
 from tescogpt.data.threads import extract_brand_conversations
 from tescogpt.evaluation.adjudication import (
     finalize_adjudication,
@@ -98,6 +99,28 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Destination for the human-readable audit report.",
     )
     audit.add_argument("--brand", default="Tesco", help="Exact support author_id")
+
+    taxonomy_audit = subparsers.add_parser(
+        "taxonomy-audit",
+        help="Audit overlapping intent themes on training cases only.",
+    )
+    taxonomy_audit.add_argument(
+        "--input",
+        type=Path,
+        default=Path("data/processed/tesco_cases.csv"),
+    )
+    taxonomy_audit.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/data/taxonomy_audit.json"),
+    )
+    taxonomy_audit.add_argument(
+        "--markdown",
+        type=Path,
+        default=Path("docs/TAXONOMY_DERIVATION.md"),
+    )
+    taxonomy_audit.add_argument("--seed", type=int, default=20260913)
+    taxonomy_audit.add_argument("--examples-per-theme", type=int, default=3)
 
     sample = subparsers.add_parser(
         "sample",
@@ -574,6 +597,17 @@ def main(argv: Sequence[str] | None = None) -> None:
             markdown_path=args.markdown,
             brand=args.brand,
             manifest_path=args.manifest,
+        )
+        print(json.dumps(audit, indent=2, sort_keys=True))
+        return
+
+    if args.command == "taxonomy-audit":
+        audit = audit_taxonomy_themes(
+            input_path=args.input,
+            output_path=args.output,
+            markdown_path=args.markdown,
+            seed=args.seed,
+            examples_per_theme=args.examples_per_theme,
         )
         print(json.dumps(audit, indent=2, sort_keys=True))
         return

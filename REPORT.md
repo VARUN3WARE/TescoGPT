@@ -55,6 +55,12 @@ categorical fields are then resolved in a separate adjudication artifact, and
 only the resulting 200-case final file is used for headline metrics. The two
 independent source rounds remain immutable.
 
+A reproducible lexical coverage audit over 17,345 training cases makes the
+taxonomy rationale inspectable without calling its patterns ground truth. It
+finds 8,597 unmatched cases and 2,276 multi-theme cases; the latter motivate
+explicit primary-intent tie-breaks, while the former show why dictionary matches
+cannot substitute for blind human labels.
+
 ## 3. System
 
 Two baselines and the final system share one validated output schema.

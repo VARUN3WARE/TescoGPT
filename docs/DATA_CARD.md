@@ -11,6 +11,10 @@ The raw dataset is not committed to this repository. Users rebuilding derived
 artifacts must obtain it from the primary publisher and comply with the license
 shown on the Kaggle dataset page.
 
+The intent families are supported by a deterministic, training-only lexical
+coverage and example audit in [the taxonomy derivation note](TAXONOMY_DERIVATION.md).
+It is descriptive evidence for the chosen boundaries, not a labelled dataset.
+
 ## Relevant fields
 
 | Field | Use |

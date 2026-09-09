@@ -81,7 +81,11 @@ per-example artifacts with model, replicate, input hash, and output hash—not
 copied aggregate numbers.
 
 The ten-intent taxonomy, routing criteria, tie-breaks, and safety reason codes
-are defined in the [annotation guide](docs/ANNOTATION_GUIDE.md). The sampling
+are defined in the [annotation guide](docs/ANNOTATION_GUIDE.md). A separate
+[training-only derivation audit](docs/TAXONOMY_DERIVATION.md) makes the selected
+operational families inspectable with overlapping lexical coverage and
+deterministic examples; it explicitly does not treat dictionary hits as labels
+or claim unsupervised discovery. The sampling
 manifest records input hashes, timestamps, seeds, split sizes, and candidate
 hashes in [data/golden](data/golden). `golden_candidates.csv` is a sampling
 registry, while `round1_annotations.csv` and `round2_annotations.csv` are the
@@ -173,6 +177,7 @@ python -m pytest
 python -m tescogpt prepare --input path/to/twcs.csv
 python -m tescogpt audit --manifest data/processed/tesco_messages.csv.manifest.json
 python -m tescogpt sample
+python -m tescogpt taxonomy-audit
 python -m tescogpt labels-init
 python -m tescogpt labels-check --input data/golden/round1_annotations.csv
 python -m tescogpt retrieve
