@@ -156,7 +156,8 @@
     "is_submission_ready": false,
     "max_words": 2400,
     "required_section_count": 5,
-    "word_count": 1797
+    "verified_failure_mode_count": 0,
+    "word_count": 1801
   },
   "submission_package": {
     "citations_file": "CITATIONS.md",

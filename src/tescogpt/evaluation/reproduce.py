@@ -430,6 +430,7 @@ def reproduce_project(
             _resolve(root, config["report_file"]),
             max_words=int(config["report_max_words"]),
             require_ready=True,
+            candidate_registry_path=_resolve(root, config.get("registry_file")),
         )
     integrity_checks = verify_artifact_integrity(config, root)
 

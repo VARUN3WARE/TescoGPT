@@ -178,11 +178,12 @@ errors and the generated event ledger rather than from these hypotheses alone.
    precedent asks for an order number, full name, and address and discusses a
    refund for a different problem. Hypothesis: retrieval evidence may guide a
    human handoff, but raw historical text must never be the sendable draft.
-4. **A positive phrase is not a resolution.** The precedent `tesco-2495531`
-   receives “Thanks” after Tesco says it does not know the answer and will ask a
-   support team. It is tagged by the positive-follow-up proxy even though no
-   resolution is visible. Hypothesis: manually audit outcome tiers and report
-   proxy precision before calling the reranker outcome-aware.
+4. **A positive phrase is not a resolution.** For evaluation case
+   `tesco-587554`, the precedent `tesco-2495531` receives “Thanks” after Tesco
+   says it does not know the answer and will ask a support team. It is tagged by
+   the positive-follow-up proxy even though no resolution is visible.
+   Hypothesis: manually audit outcome tiers and report proxy precision before
+   calling the reranker outcome-aware.
 5. **Conservative rules can waste safe automation.** `tesco-2899807` thanks
    Tesco for cat treats and includes a photo; the guarded agent escalates solely
    because media is present. A generic acknowledgement may be safe without

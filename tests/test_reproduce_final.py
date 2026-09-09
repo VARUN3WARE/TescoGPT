@@ -326,10 +326,15 @@ Synthetic integration proof only.
 ## Results
 
 The constant baseline and simple baseline are compared with the main system.
+Aggregate claims come from `outputs/evaluation/evidence_summary.md`.
 
 ## Failure analysis
 
-Synthetic failures exercise the ledger.
+1. `case-1` exercises mode one. Hypothesis: synthetic cause one.
+2. `case-2` exercises mode two. Hypothesis: synthetic cause two.
+3. `case-3` exercises mode three. Hypothesis: synthetic cause three.
+4. `case-4` exercises mode four. Hypothesis: synthetic cause four.
+5. `case-5` exercises mode five. Hypothesis: synthetic cause five.
 
 ## What is misleading about my headline number?
 

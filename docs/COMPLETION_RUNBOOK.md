@@ -140,7 +140,11 @@ five real failure modes from the failure ledger, and set config `status` to
 Only after that review, change the report's single
 `SUBMISSION_STATUS: PENDING` marker to `SUBMISSION_STATUS: READY`. The preflight
 also enforces all assignment sections and a conservative 2,400-word guard for
-the six-page limit. It separately verifies that the repository still contains
+the six-page limit. A `READY` report is rejected if it retains placeholder or
+future-result language, if Results does not name both baselines and cite
+`outputs/evaluation/evidence_summary.md`, or if its first five numbered failure
+modes lack a hypothesis and an example found in the frozen golden registry. It
+separately verifies that the repository still contains
 the reproducible README, 10–15 consecutively numbered decisions, citation and
 AI-assistance disclosure, and the configured 150–250-example golden registry.
 

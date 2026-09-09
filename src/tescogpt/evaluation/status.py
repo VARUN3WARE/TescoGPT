@@ -127,6 +127,7 @@ def project_status(
         report_status = validate_submission_report(
             report_path,
             max_words=int(config.get("report_max_words", 2400)),
+            candidate_registry_path=_resolve(root, config.get("registry_file")),
         )
     else:
         report_status = {
@@ -135,6 +136,7 @@ def project_status(
             "word_count": 0,
             "max_words": int(config.get("report_max_words", 2400)),
             "required_section_count": 0,
+            "verified_failure_mode_count": 0,
             "is_submission_ready": False,
         }
 
