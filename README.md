@@ -4,8 +4,9 @@ An evaluation-first AI support agent for Tesco conversations from the
 [Customer Support on Twitter](https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter)
 dataset.
 
-> **Current status:** project foundation. No headline result is claimed until the
-> human-labelled set is frozen and the complete evaluation has been run.
+> **Current status:** data audit and blind annotation workflow complete. The
+> candidate set is frozen but explicitly `UNLABELED`; no headline result is
+> claimed until genuine human labels and the complete evaluation are available.
 
 ## The question this project answers
 
@@ -58,16 +59,24 @@ for provenance, conversation structure, reply patterns, and outcome-proxy caveat
 
 ## Evaluation design
 
-The golden evaluation set will contain 200 manually reviewed examples:
+The frozen evaluation candidate set contains 200 examples awaiting manual review:
 
 - **150 natural-prevalence examples** from a held-out chronological window;
 - **50 challenge examples** covering safety, ambiguity, multiple intents,
   missing context, image-dependent complaints, abuse, and non-English text.
 
-The two slices will be reported separately. At least 50 examples will receive a
-second independent human annotation. The automated reply judge will be compared
-with humans per rubric dimension and will not become the headline if agreement
-is weak.
+The two slices will be reported separately. A stratified 60-example subset has
+been frozen for a second independent human annotation. Both annotation sheets
+hide later Tesco responses, slice membership, and challenge-selection flags.
+The automated reply judge will be compared with humans per rubric dimension and
+will not become the headline if agreement is weak.
+
+The ten-intent taxonomy, routing criteria, tie-breaks, and safety reason codes
+are defined in the [annotation guide](docs/ANNOTATION_GUIDE.md). The sampling
+manifest records input hashes, timestamps, seeds, split sizes, and candidate
+hashes in [data/golden](data/golden). `golden_candidates.csv` is a sampling
+registry, while `round1_annotations.csv` and `round2_annotations.csv` are the
+blinded files given to annotators.
 
 Planned primary measures:
 
@@ -108,11 +117,23 @@ python -m pip install -e ".[dev]"
 python -m pytest
 python -m tescogpt prepare --input path/to/twcs.csv
 python -m tescogpt audit --manifest data/processed/tesco_messages.csv.manifest.json
+python -m tescogpt sample
+python -m tescogpt labels-init
+python -m tescogpt labels-check --input data/golden/round1_annotations.csv
 ```
 
 Raw and full processed datasets are gitignored. The command writes a long-form
 conversation CSV plus a manifest containing source/output hashes and structural
-counts.
+counts. `sample` creates a chronological conversation-level 70/15/15 split and
+selects at most one evaluated case per conversation. `labels-init` is
+deterministic and should only be rerun while the sheets are blank; once human
+work begins, completed files must be preserved rather than overwritten.
+
+To finish the human-label checkpoint, annotator one completes all 200 rows in
+`round1_annotations.csv`, while a different person independently completes the
+60 rows in `round2_annotations.csv`. Validate either file with
+`labels-check --require-complete`. AI-generated labels do not satisfy this
+project's golden-set requirement.
 
 ## Repository map
 

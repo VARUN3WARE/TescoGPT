@@ -29,4 +29,18 @@ after the results are known.
    adding it would increase apparent sophistication without improving validity.
 10. **Prioritize an offline reproduction path over a hosted demo.** Reviewers must
     be able to verify the evidence quickly even if an external model API changes.
-
+11. **Split chronologically by complete conversation.** A random split is easier,
+    but it lets later phrasing and support behavior inform evaluation of earlier
+    cases and understates real deployment drift.
+12. **Evaluate one incoming case per conversation.** This prevents long or noisy
+    threads from dominating the golden set and makes the 200 examples closer to
+    200 independent support situations.
+13. **Freeze 150 natural cases and 50 separate challenge cases.** Natural traffic
+    estimates likely prevalence; targeted challenge sampling exposes rare safety
+    failures without pretending those failures occur at the same rate.
+14. **Blind annotators to both future replies and sampling heuristics.** Even a
+    flag such as `money` or knowledge that a row is a challenge case could bias
+    intent and escalation labels. Slice metadata is rejoined only for analysis.
+15. **Double-label 60 stratified cases before adjudication.** This exceeds the
+    minimum 50 while keeping independent review feasible; raw disagreement will
+    be reported rather than erased by consensus labels alone.
