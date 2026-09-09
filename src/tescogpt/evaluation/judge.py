@@ -132,6 +132,11 @@ def _sha256(path: Path, block_size: int = 1024 * 1024) -> str:
     return digest.hexdigest()
 
 
+def _valid_sha256(value: Any) -> bool:
+    text = str(value)
+    return len(text) == 64 and all(character in "0123456789abcdef" for character in text)
+
+
 class OpenAIReplyJudge:
     """Cached single-reply judge using strict Responses API output."""
 
@@ -435,22 +440,44 @@ def validate_judge_output(
             raise ValueError("Judge row count differs from its manifest")
         if int(manifest.get("judge_output_schema_version", 1)) >= 2:
             provenance = manifest.get("judge_provenance", {})
+            if provenance.get("provider") != "openai":
+                raise ValueError("Judge provenance provider must be openai")
             if provenance.get("requested_model") != models[0]:
                 raise ValueError("Judge provenance model differs from output")
             if int(provenance.get("replicate", 0)) != int(replicates.iloc[0]):
                 raise ValueError("Judge provenance replicate differs from output")
             if int(provenance.get("request_count", -1)) != len(judge):
                 raise ValueError("Judge provenance request count differs from output")
+            requests = provenance.get("requests", [])
+            if not isinstance(requests, list) or len(requests) != len(judge):
+                raise ValueError("Judge provenance requests differ from output rows")
             provenance_ids = [
                 str(request.get("review_id", ""))
-                for request in provenance.get("requests", [])
+                for request in requests
             ]
             if sorted(provenance_ids) != sorted(judge["review_id"]):
                 raise ValueError("Judge provenance request IDs differ from output")
             for field in ("instructions_sha256", "schema_sha256"):
-                value = str(provenance.get(field, ""))
-                if len(value) != 64:
+                if not _valid_sha256(provenance.get(field)):
                     raise ValueError(f"Judge provenance has invalid {field}")
+            for request in requests:
+                if not _valid_sha256(request.get("request_sha256")):
+                    raise ValueError("Judge provenance has an invalid request hash")
+                if not isinstance(request.get("cache_hit"), bool):
+                    raise ValueError("Judge provenance has an invalid cache status")
+                if not request.get("response_id") or not request.get("response_model"):
+                    raise ValueError("Judge provenance lacks response lineage")
+            request_hashes = {str(request["request_sha256"]) for request in requests}
+            if int(provenance.get("unique_request_count", -1)) != len(request_hashes):
+                raise ValueError("Judge provenance unique-request count is invalid")
+            cache_hits = sum(bool(request["cache_hit"]) for request in requests)
+            if int(provenance.get("cache_hit_count", -1)) != cache_hits:
+                raise ValueError("Judge provenance cache-hit count is invalid")
+            if int(provenance.get("api_call_count", -1)) != len(requests) - cache_hits:
+                raise ValueError("Judge provenance API-call count is invalid")
+            resolved_models = sorted({str(request["response_model"]) for request in requests})
+            if provenance.get("resolved_models") != resolved_models:
+                raise ValueError("Judge provenance resolved models are invalid")
     return {
         "file": source.name,
         "row_count": len(judge),

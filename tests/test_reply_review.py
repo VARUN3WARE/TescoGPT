@@ -325,6 +325,17 @@ def test_judge_manifest_contains_request_level_provenance(tmp_path: Path) -> Non
         manifest_path=output.with_suffix(".csv.manifest.json"),
     )
 
+    manifest["judge_provenance"]["requests"][0]["response_id"] = ""
+    output.with_suffix(".csv.manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="lacks response lineage"):
+        validate_judge_output(
+            output,
+            review_path=review,
+            manifest_path=output.with_suffix(".csv.manifest.json"),
+        )
+
 
 def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> None:
     round_one = _gold(tmp_path / "round1.csv")

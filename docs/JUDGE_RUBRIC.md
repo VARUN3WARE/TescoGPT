@@ -94,7 +94,9 @@ an adjacent manifest. The manifest also freezes instruction/schema hashes,
 request hashes, cache status, resolved response model, and token usage.
 Validation rejects unknown scores or tags, inconsistent pass values, duplicate
 or missing review IDs, mixed models/replicates, changed review content, and
-output or request provenance that differs from the manifest.
+output or request provenance that differs from the manifest. Each row must retain
+a valid request hash, Boolean cache flag, response ID, and resolved model, while
+the manifest's unique-request, cache-hit, and API-call totals must reconcile.
 
 The judge is advisory. Human reply pass rate remains the quality headline if
 judge agreement is inadequate.
