@@ -133,7 +133,21 @@ def test_template_agent_auto_handles_plain_feedback() -> None:
     assert result.decision_reason == "NO_ACTION_NEEDED"
     assert result.proposed_draft == result.draft_reply
     assert not result.draft_was_replaced
-    assert result.evidence_case_ids == ("train-1",)
+    assert result.evidence_case_ids == ()
+
+
+def test_prediction_trace_separates_retrieved_from_used_evidence() -> None:
+    result, retrieved = EvidencePolicyAgent(_corpus(), SafeTemplateDrafter()).predict_with_trace(
+        {
+            "case_id": "test-1",
+            "conversation_id": "99",
+            "message": "Thank you Tesco",
+            "prior_context": "",
+        }
+    )
+
+    assert result.evidence_case_ids == ()
+    assert tuple(item.case_id for item in retrieved) == ("train-1",)
 
 
 def test_prediction_records_only_evidence_the_drafter_declares_used() -> None:

@@ -118,7 +118,9 @@ class SafeTemplateDrafter:
             predicted_intent=intent,
             intent_confidence=confidence,
             draft_reply=safe_template(intent),
-            used_evidence_case_ids=tuple(item.case_id for item in precedents),
+            # Retrieval still runs so the same policy path is exercised, but this
+            # generic fallback does not consume precedent content when drafting.
+            used_evidence_case_ids=(),
         )
 
 

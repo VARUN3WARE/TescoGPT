@@ -10,7 +10,7 @@ import pandas as pd
 from tescogpt.agent.drafting import Drafter, safe_template
 from tescogpt.agent.schema import AgentOutput
 from tescogpt.policy.routing import decide_handling
-from tescogpt.retrieval.outcome import OutcomeAwareRetriever
+from tescogpt.retrieval.outcome import OutcomeAwareRetriever, Precedent
 
 
 class EvidencePolicyAgent:
@@ -21,7 +21,10 @@ class EvidencePolicyAgent:
         self._drafter = drafter
         self.name = f"tescogpt_{drafter.name}_policy_v1"
 
-    def predict(self, case: Mapping[str, Any]) -> AgentOutput:
+    def predict_with_trace(
+        self, case: Mapping[str, Any]
+    ) -> tuple[AgentOutput, tuple[Precedent, ...]]:
+        """Return the validated prediction and full retrieved pack for inspection."""
         message = str(case.get("message", ""))
         prior_context = str(case.get("prior_context", ""))
         query = f"{prior_context} {message}".strip()
@@ -57,7 +60,7 @@ class EvidencePolicyAgent:
         if draft_was_replaced:
             reply = safe_template(draft.predicted_intent)
 
-        return AgentOutput(
+        output = AgentOutput(
             case_id=str(case["case_id"]),
             system_name=self.name,
             predicted_intent=draft.predicted_intent,
@@ -73,3 +76,9 @@ class EvidencePolicyAgent:
             evidence_scores=tuple(item.rerank_score for item in used_precedents),
             safety_flags=tuple(sorted({*policy.input_flags, *guardrail_flags})),
         )
+        return output, tuple(precedents)
+
+    def predict(self, case: Mapping[str, Any]) -> AgentOutput:
+        """Return one validated output; batch artifacts retain used evidence only."""
+        output, _ = self.predict_with_trace(case)
+        return output

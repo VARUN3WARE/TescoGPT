@@ -64,8 +64,8 @@
       "passed": true
     },
     {
-      "actual_sha256": "b7f883b3c6a618d10f4dee241927f14368b1144cba687a4c9b2619a6aa702091",
-      "expected_sha256": "b7f883b3c6a618d10f4dee241927f14368b1144cba687a4c9b2619a6aa702091",
+      "actual_sha256": "e917adb89a47610902e1ce8791e9d84d94036802433a051069722c903a05baaf",
+      "expected_sha256": "e917adb89a47610902e1ce8791e9d84d94036802433a051069722c903a05baaf",
       "file": "main_template.csv",
       "name": "prediction tescogpt_guarded_template_v1_policy_v1",
       "passed": true
