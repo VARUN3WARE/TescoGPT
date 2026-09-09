@@ -71,8 +71,10 @@ these categories explicit, penalizes unresolved follow-ups and unsafe historical
 reply patterns, and preserves all evidence for inspection.
 
 The API drafter uses an explicit model ID, strict JSON-schema output,
-`store=False`, sanitized text, and a request-hash cache. It can propose an intent
-and draft but cannot authorize automatic sending. Deterministic rules force
+`store=False`, sanitized text, and a request-hash cache. Its manifest preserves
+prompt/schema hashes, resolved model, response IDs, cache status, and token
+usage. It can propose an intent and draft but cannot authorize automatic
+sending. Deterministic rules force
 review for safety/injury, backend lookup, money, personal data, unavailable
 media, current facts, repeated failure/distress, and discretionary judgment. A
 draft that requests data, claims an unavailable action, promises money, embeds a

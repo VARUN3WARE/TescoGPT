@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -149,6 +150,14 @@ class OpenAIReplyJudge:
         self.model = model
         self.replicate = replicate
         self._cache_dir = Path(cache_dir)
+        self._schema_text = json.dumps(_JUDGE_SCHEMA, sort_keys=True)
+        self._instructions_sha256 = hashlib.sha256(
+            _JUDGE_INSTRUCTIONS.encode("utf-8")
+        ).hexdigest()
+        self._schema_sha256 = hashlib.sha256(
+            self._schema_text.encode("utf-8")
+        ).hexdigest()
+        self._request_traces: list[dict[str, Any]] = []
         if client is None:
             try:
                 from openai import OpenAI
@@ -159,6 +168,63 @@ class OpenAIReplyJudge:
             client = OpenAI()
         self._client = client
 
+    @staticmethod
+    def _usage_record(usage: Any) -> dict[str, Any]:
+        if hasattr(usage, "model_dump"):
+            usage = usage.model_dump()
+        return dict(usage) if isinstance(usage, Mapping) else {}
+
+    @staticmethod
+    def _rating(result: Any) -> JudgeRating:
+        required = set(_JUDGE_SCHEMA["required"])
+        if not isinstance(result, Mapping) or set(result) != required:
+            raise ValueError("Judge result does not match the frozen output fields")
+        tags = result["critical_error_tags"]
+        if not isinstance(tags, list) or len(tags) != len(set(tags)):
+            raise ValueError("Judge critical-error tags must be a unique JSON array")
+        return JudgeRating(
+            **{dimension: int(result[dimension]) for dimension in RATING_DIMENSIONS},
+            critical_error_tags=tuple(tags),
+            overall_pass=str(result["overall_pass"]),
+            rationale=str(result["rationale"]),
+        )
+
+    def provenance(self) -> dict[str, Any]:
+        """Return request lineage and token totals without exposing human ratings."""
+        unique_usage: dict[str, dict[str, Any]] = {}
+        for trace in self._request_traces:
+            unique_usage.setdefault(trace["request_sha256"], trace["usage"])
+        usage_totals: dict[str, int] = {}
+        for usage in unique_usage.values():
+            for key in ("input_tokens", "output_tokens", "total_tokens"):
+                value = usage.get(key)
+                if isinstance(value, int):
+                    usage_totals[key] = usage_totals.get(key, 0) + value
+        return {
+            "provider": "openai",
+            "requested_model": self.model,
+            "resolved_models": sorted(
+                {
+                    str(trace["response_model"])
+                    for trace in self._request_traces
+                    if trace.get("response_model")
+                }
+            ),
+            "replicate": self.replicate,
+            "instructions_sha256": self._instructions_sha256,
+            "schema_sha256": self._schema_sha256,
+            "request_count": len(self._request_traces),
+            "unique_request_count": len(unique_usage),
+            "api_call_count": sum(
+                not bool(trace["cache_hit"]) for trace in self._request_traces
+            ),
+            "cache_hit_count": sum(
+                bool(trace["cache_hit"]) for trace in self._request_traces
+            ),
+            "usage_totals": usage_totals,
+            "requests": self._request_traces,
+        }
+
     def rate(self, row: dict[str, Any]) -> JudgeRating:
         missing = sorted(set(_JUDGE_INPUT_COLUMNS) - set(row))
         if missing:
@@ -166,21 +232,35 @@ class OpenAIReplyJudge:
         payload = {column: str(row[column]) for column in _JUDGE_INPUT_COLUMNS}
         payload["rubric"] = _RUBRIC
         input_text = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-        schema_text = json.dumps(_JUDGE_SCHEMA, sort_keys=True)
         request_hash = hashlib.sha256(
             (
                 self.model
                 + f"\nreplicate={self.replicate}\n"
                 + _JUDGE_INSTRUCTIONS
                 + "\n"
-                + schema_text
+                + self._schema_text
                 + "\n"
                 + input_text
             ).encode("utf-8")
         ).hexdigest()
         cache_path = self._cache_dir / f"{request_hash}.json"
         if cache_path.is_file():
-            result = json.loads(cache_path.read_text(encoding="utf-8"))["result"]
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            expected_cache = {
+                "request_sha256": request_hash,
+                "instructions_sha256": self._instructions_sha256,
+                "schema_sha256": self._schema_sha256,
+                "model": self.model,
+                "replicate": self.replicate,
+            }
+            if any(cached.get(key) != value for key, value in expected_cache.items()):
+                raise ValueError("Cached judge provenance does not match this request")
+            result = cached["result"]
+            cache_hit = True
+            response_id = cached.get("response_id")
+            response_model = cached.get("response_model")
+            usage = self._usage_record(cached.get("usage"))
+            rating = self._rating(result)
         else:
             response = self._client.responses.create(
                 model=self.model,
@@ -198,17 +278,22 @@ class OpenAIReplyJudge:
                 store=False,
             )
             result = json.loads(response.output_text)
-            usage = getattr(response, "usage", None)
-            if hasattr(usage, "model_dump"):
-                usage = usage.model_dump()
+            usage = self._usage_record(getattr(response, "usage", None))
+            response_id = getattr(response, "id", None)
+            response_model = getattr(response, "model", None)
+            cache_hit = False
+            rating = self._rating(result)
             self._cache_dir.mkdir(parents=True, exist_ok=True)
             cache_path.write_text(
                 json.dumps(
                     {
                         "request_sha256": request_hash,
+                        "instructions_sha256": self._instructions_sha256,
+                        "schema_sha256": self._schema_sha256,
                         "model": self.model,
                         "replicate": self.replicate,
-                        "response_id": getattr(response, "id", None),
+                        "response_id": response_id,
+                        "response_model": response_model,
                         "usage": usage,
                         "result": result,
                     },
@@ -220,12 +305,17 @@ class OpenAIReplyJudge:
                 encoding="utf-8",
                 newline="\n",
             )
-        return JudgeRating(
-            **{dimension: int(result[dimension]) for dimension in RATING_DIMENSIONS},
-            critical_error_tags=tuple(result["critical_error_tags"]),
-            overall_pass=str(result["overall_pass"]),
-            rationale=str(result["rationale"]),
+        self._request_traces.append(
+            {
+                "review_id": str(row.get("review_id", "")),
+                "request_sha256": request_hash,
+                "cache_hit": cache_hit,
+                "response_id": response_id,
+                "response_model": response_model,
+                "usage": usage,
+            }
         )
+        return rating
 
 
 def judge_review_sheet(
@@ -275,7 +365,7 @@ def judge_review_sheet(
     output.to_csv(destination, index=False, lineterminator="\n")
     validate_judge_output(destination, review_path=review_path)
     manifest = {
-        "judge_output_schema_version": 1,
+        "judge_output_schema_version": 2,
         "review_file": Path(review_path).name,
         "review_sha256": _sha256(Path(review_path)),
         "output_file": destination.name,
@@ -283,6 +373,7 @@ def judge_review_sheet(
         "model": model,
         "replicate": replicate,
         "row_count": len(output),
+        "judge_provenance": judge.provenance(),
     }
     manifest_path = destination.with_suffix(destination.suffix + ".manifest.json")
     manifest_path.write_text(
@@ -342,6 +433,24 @@ def validate_judge_output(
             raise ValueError("Judge replicate differs from its manifest")
         if int(manifest.get("row_count", -1)) != len(judge):
             raise ValueError("Judge row count differs from its manifest")
+        if int(manifest.get("judge_output_schema_version", 1)) >= 2:
+            provenance = manifest.get("judge_provenance", {})
+            if provenance.get("requested_model") != models[0]:
+                raise ValueError("Judge provenance model differs from output")
+            if int(provenance.get("replicate", 0)) != int(replicates.iloc[0]):
+                raise ValueError("Judge provenance replicate differs from output")
+            if int(provenance.get("request_count", -1)) != len(judge):
+                raise ValueError("Judge provenance request count differs from output")
+            provenance_ids = [
+                str(request.get("review_id", ""))
+                for request in provenance.get("requests", [])
+            ]
+            if sorted(provenance_ids) != sorted(judge["review_id"]):
+                raise ValueError("Judge provenance request IDs differ from output")
+            for field in ("instructions_sha256", "schema_sha256"):
+                value = str(provenance.get(field, ""))
+                if len(value) != 64:
+                    raise ValueError(f"Judge provenance has invalid {field}")
     return {
         "file": source.name,
         "row_count": len(judge),

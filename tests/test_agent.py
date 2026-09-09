@@ -5,6 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 
 from tescogpt.agent.drafting import (
     DraftCandidate,
@@ -134,8 +135,9 @@ class FakeResponses:
         }
         return SimpleNamespace(
             id="response-test",
+            model="test-model-2026-09-01",
             output_text=json.dumps(output),
-            usage={"input_tokens": 10, "output_tokens": 8},
+            usage={"input_tokens": 10, "output_tokens": 8, "total_tokens": 18},
         )
 
 
@@ -154,3 +156,35 @@ def test_openai_drafter_uses_strict_schema_store_false_and_cache(tmp_path: Path)
     assert request["store"] is False
     assert request["text"]["format"]["type"] == "json_schema"
     assert list((tmp_path / "cache").glob("*.json"))
+    provenance = drafter.provenance()
+    assert provenance["request_count"] == 2
+    assert provenance["unique_request_count"] == 1
+    assert provenance["api_call_count"] == 1
+    assert provenance["cache_hit_count"] == 1
+    assert provenance["resolved_models"] == ["test-model-2026-09-01"]
+    assert provenance["usage_totals"]["total_tokens"] == 18
+
+
+def test_openai_drafter_rejects_cache_with_changed_provenance(tmp_path: Path) -> None:
+    cache = tmp_path / "cache"
+    drafter = OpenAIDrafter(
+        "test-model",
+        cache,
+        client=SimpleNamespace(responses=FakeResponses()),
+    )
+    drafter.draft({"case_id": "c1", "message": "Thanks", "prior_context": ""}, [_precedent()])
+    cache_path = next(cache.glob("*.json"))
+    record = json.loads(cache_path.read_text(encoding="utf-8"))
+    record["model"] = "different-model"
+    cache_path.write_text(json.dumps(record), encoding="utf-8")
+    fresh = OpenAIDrafter(
+        "test-model",
+        cache,
+        client=SimpleNamespace(responses=FakeResponses()),
+    )
+
+    with pytest.raises(ValueError, match="Cached draft provenance"):
+        fresh.draft(
+            {"case_id": "c1", "message": "Thanks", "prior_context": ""},
+            [_precedent()],
+        )

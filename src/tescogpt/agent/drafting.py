@@ -28,6 +28,8 @@ class DraftCandidate:
             raise ValueError("Draft intent confidence must be between 0 and 1")
         if not self.draft_reply.strip():
             raise ValueError("Draft reply must not be blank")
+        if len(self.draft_reply) > 280:
+            raise ValueError("Draft reply must not exceed 280 characters")
 
 
 class Drafter(Protocol):
@@ -158,6 +160,14 @@ class OpenAIDrafter:
         self.model = model
         self.name = f"openai_{model}_v1"
         self._cache_dir = Path(cache_dir)
+        self._schema_text = json.dumps(_DRAFT_SCHEMA, sort_keys=True)
+        self._instructions_sha256 = hashlib.sha256(
+            _INSTRUCTIONS.encode("utf-8")
+        ).hexdigest()
+        self._schema_sha256 = hashlib.sha256(
+            self._schema_text.encode("utf-8")
+        ).hexdigest()
+        self._request_traces: list[dict[str, Any]] = []
         if client is None:
             try:
                 from openai import OpenAI
@@ -167,6 +177,72 @@ class OpenAIDrafter:
                 ) from error
             client = OpenAI()
         self._client = client
+
+    @staticmethod
+    def _usage_record(usage: Any) -> dict[str, Any]:
+        if hasattr(usage, "model_dump"):
+            usage = usage.model_dump()
+        return dict(usage) if isinstance(usage, Mapping) else {}
+
+    def _candidate(
+        self,
+        result: Any,
+        precedents: Sequence[Precedent],
+    ) -> DraftCandidate:
+        required = set(_DRAFT_SCHEMA["required"])
+        if not isinstance(result, Mapping) or set(result) != required:
+            raise ValueError("Drafter result does not match the frozen output fields")
+        used_value = result["used_evidence_case_ids"]
+        if not isinstance(used_value, list) or len(used_value) != len(set(used_value)):
+            raise ValueError("Drafter evidence IDs must be a unique JSON array")
+        available_ids = {item.case_id for item in precedents}
+        used_ids = tuple(str(item) for item in used_value)
+        unknown_ids = sorted(set(used_ids) - available_ids)
+        if unknown_ids:
+            raise ValueError(
+                "Drafter cited evidence that was not retrieved: " + ", ".join(unknown_ids)
+            )
+        return DraftCandidate(
+            predicted_intent=str(result["predicted_intent"]),
+            intent_confidence=float(result["intent_confidence"]),
+            draft_reply=str(result["draft_reply"]),
+            used_evidence_case_ids=used_ids,
+        )
+
+    def provenance(self) -> dict[str, Any]:
+        """Return request-level lineage and de-duplicated token usage."""
+        unique_usage: dict[str, dict[str, Any]] = {}
+        for trace in self._request_traces:
+            unique_usage.setdefault(trace["request_sha256"], trace["usage"])
+        usage_totals: dict[str, int] = {}
+        for usage in unique_usage.values():
+            for key in ("input_tokens", "output_tokens", "total_tokens"):
+                value = usage.get(key)
+                if isinstance(value, int):
+                    usage_totals[key] = usage_totals.get(key, 0) + value
+        return {
+            "provider": "openai",
+            "requested_model": self.model,
+            "resolved_models": sorted(
+                {
+                    str(trace["response_model"])
+                    for trace in self._request_traces
+                    if trace.get("response_model")
+                }
+            ),
+            "instructions_sha256": self._instructions_sha256,
+            "schema_sha256": self._schema_sha256,
+            "request_count": len(self._request_traces),
+            "unique_request_count": len(unique_usage),
+            "api_call_count": sum(
+                not bool(trace["cache_hit"]) for trace in self._request_traces
+            ),
+            "cache_hit_count": sum(
+                bool(trace["cache_hit"]) for trace in self._request_traces
+            ),
+            "usage_totals": usage_totals,
+            "requests": self._request_traces,
+        }
 
     @staticmethod
     def _input_payload(
@@ -198,14 +274,13 @@ class OpenAIDrafter:
         precedents: Sequence[Precedent],
     ) -> DraftCandidate:
         input_payload = self._input_payload(case, precedents)
-        schema_payload = json.dumps(_DRAFT_SCHEMA, sort_keys=True)
         request_hash = hashlib.sha256(
             (
                 self.model
                 + "\n"
                 + _INSTRUCTIONS
                 + "\n"
-                + schema_payload
+                + self._schema_text
                 + "\n"
                 + input_payload
             ).encode("utf-8")
@@ -213,7 +288,20 @@ class OpenAIDrafter:
         cache_path = self._cache_dir / f"{request_hash}.json"
         if cache_path.is_file():
             cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            expected_cache = {
+                "request_sha256": request_hash,
+                "instructions_sha256": self._instructions_sha256,
+                "schema_sha256": self._schema_sha256,
+                "model": self.model,
+            }
+            if any(cached.get(key) != value for key, value in expected_cache.items()):
+                raise ValueError("Cached draft provenance does not match this request")
             result = cached["result"]
+            cache_hit = True
+            response_id = cached.get("response_id")
+            response_model = cached.get("response_model")
+            usage = self._usage_record(cached.get("usage"))
+            candidate = self._candidate(result, precedents)
         else:
             response = self._client.responses.create(
                 model=self.model,
@@ -231,14 +319,18 @@ class OpenAIDrafter:
                 store=False,
             )
             result = json.loads(response.output_text)
-            usage = getattr(response, "usage", None)
-            if hasattr(usage, "model_dump"):
-                usage = usage.model_dump()
+            usage = self._usage_record(getattr(response, "usage", None))
+            response_id = getattr(response, "id", None)
+            response_model = getattr(response, "model", None)
+            cache_hit = False
+            candidate = self._candidate(result, precedents)
             cache_record = {
                 "request_sha256": request_hash,
-                "schema_sha256": hashlib.sha256(schema_payload.encode("utf-8")).hexdigest(),
+                "instructions_sha256": self._instructions_sha256,
+                "schema_sha256": self._schema_sha256,
                 "model": self.model,
-                "response_id": getattr(response, "id", None),
+                "response_id": response_id,
+                "response_model": response_model,
                 "usage": usage,
                 "result": result,
             }
@@ -249,20 +341,17 @@ class OpenAIDrafter:
                 encoding="utf-8",
                 newline="\n",
             )
-
-        available_ids = {item.case_id for item in precedents}
-        used_ids = tuple(str(item) for item in result["used_evidence_case_ids"])
-        unknown_ids = sorted(set(used_ids) - available_ids)
-        if unknown_ids:
-            raise ValueError(
-                "Drafter cited evidence that was not retrieved: " + ", ".join(unknown_ids)
-            )
-        return DraftCandidate(
-            predicted_intent=str(result["predicted_intent"]),
-            intent_confidence=float(result["intent_confidence"]),
-            draft_reply=str(result["draft_reply"]),
-            used_evidence_case_ids=used_ids,
+        self._request_traces.append(
+            {
+                "case_id": str(case.get("case_id", "")),
+                "request_sha256": request_hash,
+                "cache_hit": cache_hit,
+                "response_id": response_id,
+                "response_model": response_model,
+                "usage": usage,
+            }
         )
+        return candidate
 
 
 def draft_schema() -> dict[str, Any]:

@@ -43,6 +43,7 @@ def run_predictions(
 
     corpus_file: Path | None = None
     corpus: pd.DataFrame | None = None
+    openai_drafter: OpenAIDrafter | None = None
     needs_corpus = system in {"simple", "main-template", "main-openai"}
     if needs_corpus:
         if corpus_path is None:
@@ -69,7 +70,8 @@ def run_predictions(
         assert corpus is not None
         if model is None:
             raise ValueError("main-openai requires an explicit model ID")
-        agent = EvidencePolicyAgent(corpus, OpenAIDrafter(model, cache_dir))
+        openai_drafter = OpenAIDrafter(model, cache_dir)
+        agent = EvidencePolicyAgent(corpus, openai_drafter)
     else:
         raise ValueError(f"Unknown system: {system}")
 
@@ -97,6 +99,8 @@ def run_predictions(
         manifest["corpus_row_count"] = len(corpus)
     if model is not None:
         manifest["model"] = model
+    if openai_drafter is not None:
+        manifest["generation_provenance"] = openai_drafter.provenance()
     manifest_path = destination.with_suffix(destination.suffix + ".manifest.json")
     manifest_path.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n",

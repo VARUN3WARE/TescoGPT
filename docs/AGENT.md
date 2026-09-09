@@ -31,6 +31,11 @@ LLM result.
 - verifies that every cited evidence ID was actually retrieved; and
 - hashes model, instructions, schema, and input into a resumable local cache.
 
+The final prediction manifest records instruction and schema hashes, every case
+request hash, cache-hit status, response ID, resolved response model, and token
+usage. Cache records with mismatched provenance or invalid result fields are
+rejected rather than silently reused.
+
 The integration follows the official
 [Responses API reference](https://developers.openai.com/api/reference/cli/resources/responses/methods/create).
 No API-backed artifact is committed yet because this environment has no API key.

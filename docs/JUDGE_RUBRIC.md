@@ -90,9 +90,11 @@ routing-fit score separately. Otherwise easy decoys could make an unreliable
 judge appear more human-aligned.
 
 Every judge run keeps its explicit model ID and replicate number in each row and
-an adjacent manifest. Validation rejects unknown scores or tags, inconsistent
-pass values, duplicate or missing review IDs, mixed models/replicates, changed
-review content, and output hashes that differ from the manifest.
+an adjacent manifest. The manifest also freezes instruction/schema hashes,
+request hashes, cache status, resolved response model, and token usage.
+Validation rejects unknown scores or tags, inconsistent pass values, duplicate
+or missing review IDs, mixed models/replicates, changed review content, and
+output or request provenance that differs from the manifest.
 
 The judge is advisory. Human reply pass rate remains the quality headline if
 judge agreement is inadequate.

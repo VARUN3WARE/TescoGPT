@@ -16,6 +16,7 @@ from tescogpt.evaluation.judge import (
     JudgeRating,
     OpenAIReplyJudge,
     judge_human_agreement,
+    judge_review_sheet,
     validate_judge_output,
 )
 from tescogpt.evaluation.labels import LABEL_COLUMNS
@@ -225,7 +226,12 @@ class FakeResponses:
             "overall_pass": "PASS",
             "rationale": "Safe, relevant, and appropriate.",
         }
-        return SimpleNamespace(id="judge-1", output_text=json.dumps(result), usage={})
+        return SimpleNamespace(
+            id="judge-1",
+            model="judge-model-2026-09-01",
+            output_text=json.dumps(result),
+            usage={"input_tokens": 20, "output_tokens": 10, "total_tokens": 30},
+        )
 
 
 def test_openai_judge_is_blinded_structured_and_cached(tmp_path: Path) -> None:
@@ -259,6 +265,12 @@ def test_openai_judge_is_blinded_structured_and_cached(tmp_path: Path) -> None:
     assert request["store"] is False
     assert "must-not-be-sent" not in request["input"]
     assert request["text"]["format"]["strict"] is True
+    provenance = judge.provenance()
+    assert provenance["request_count"] == 2
+    assert provenance["api_call_count"] == 1
+    assert provenance["cache_hit_count"] == 1
+    assert provenance["resolved_models"] == ["judge-model-2026-09-01"]
+    assert provenance["usage_totals"]["total_tokens"] == 30
 
 
 def test_judge_rating_rejects_inconsistent_pass() -> None:
@@ -269,6 +281,49 @@ def test_judge_rating_rejects_inconsistent_pass() -> None:
             overall_pass="PASS",
             rationale="The claim is unsupported.",
         )
+
+
+def test_judge_manifest_contains_request_level_provenance(tmp_path: Path) -> None:
+    review = tmp_path / "review.csv"
+    row = {
+        "review_id": "review-1",
+        "case_id": "case-1",
+        "message": "Thanks Tesco",
+        "prior_context": "",
+        "gold_intent": "feedback_praise_or_suggestion",
+        "gold_handling": "AUTO_HANDLE",
+        "gold_reason": "NO_ACTION_NEEDED",
+        "must_include": "thanks",
+        "must_avoid": "invented action",
+        "draft_reply": "Thanks for your feedback.",
+        "proposed_handling": "AUTO_HANDLE",
+        "proposed_reason": "NO_ACTION_NEEDED",
+        "evidence_quotes": "[]",
+        **{dimension: "2" for dimension in RATING_DIMENSIONS},
+        "critical_error_tags": "",
+        "overall_pass": "PASS",
+        "reviewer_id": "human_a",
+        "review_notes": "",
+    }
+    pd.DataFrame([row]).to_csv(review, index=False)
+    output = tmp_path / "judge.csv"
+    manifest = judge_review_sheet(
+        review,
+        output,
+        model="judge-model",
+        cache_dir=tmp_path / "cache",
+        client=SimpleNamespace(responses=FakeResponses()),
+    )
+
+    provenance = manifest["judge_provenance"]
+    assert provenance["request_count"] == 1
+    assert provenance["requests"][0]["review_id"] == "review-1"
+    assert provenance["instructions_sha256"]
+    validate_judge_output(
+        output,
+        review_path=review,
+        manifest_path=output.with_suffix(".csv.manifest.json"),
+    )
 
 
 def test_annotation_and_judge_agreement_reports_are_written(tmp_path: Path) -> None:

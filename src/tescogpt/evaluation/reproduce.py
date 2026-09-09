@@ -60,6 +60,45 @@ def _hash_check(
         raise ValueError(f"Artifact hash mismatch for {name}: {path}")
 
 
+def _valid_sha256(value: Any) -> bool:
+    text = str(value)
+    return len(text) == 64 and all(character in "0123456789abcdef" for character in text)
+
+
+def _validate_generation_provenance(
+    manifest: dict[str, Any],
+    predictions: pd.DataFrame,
+    path: Path,
+) -> None:
+    """Require request-level lineage for paid API-backed prediction artifacts."""
+    model = manifest.get("model")
+    if model is None:
+        return
+    provenance = manifest.get("generation_provenance", {})
+    if provenance.get("provider") != "openai":
+        raise ValueError(f"API prediction lacks OpenAI provenance: {path}")
+    if provenance.get("requested_model") != model:
+        raise ValueError(f"API prediction model differs from provenance: {path}")
+    for field in ("instructions_sha256", "schema_sha256"):
+        if not _valid_sha256(provenance.get(field)):
+            raise ValueError(f"API prediction has invalid {field}: {path}")
+    requests = provenance.get("requests", [])
+    if not isinstance(requests, list) or len(requests) != len(predictions):
+        raise ValueError(f"API prediction request count differs from rows: {path}")
+    if int(provenance.get("request_count", -1)) != len(predictions):
+        raise ValueError(f"API prediction provenance count differs from rows: {path}")
+    request_case_ids = [str(request.get("case_id", "")) for request in requests]
+    if sorted(request_case_ids) != sorted(predictions["case_id"].astype(str)):
+        raise ValueError(f"API prediction request IDs differ from rows: {path}")
+    for request in requests:
+        if not _valid_sha256(request.get("request_sha256")):
+            raise ValueError(f"API prediction has an invalid request hash: {path}")
+        if not request.get("response_id") or not request.get("response_model"):
+            raise ValueError(f"API prediction lacks response lineage: {path}")
+        if not isinstance(request.get("cache_hit"), bool):
+            raise ValueError(f"API prediction cache status is invalid: {path}")
+
+
 def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[str, Any]]:
     """Verify distributed inputs/outputs against their adjacent manifests."""
     checks: list[dict[str, Any]] = []
@@ -125,6 +164,7 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
         frame = pd.read_csv(prediction_path, dtype="string", keep_default_na=False)
         if set(frame["system_name"]) != {manifest.get("system")}:
             raise ValueError(f"Prediction system name differs from manifest: {prediction_path}")
+        _validate_generation_provenance(manifest, frame, prediction_path)
 
     retrieval_path = _resolve(root, config["retrieval_file"])
     retrieval_manifest_path = retrieval_path.with_suffix(
