@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Secrets and local configuration
+.env
+*.key
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Raw and generated datasets (the frozen golden set and tiny samples are tracked)
+data/raw/*
+data/interim/*
+data/processed/*
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/golden/**
+!data/sample/**
+
+# Large/generated model artifacts and API caches
+artifacts/models/*
+artifacts/indexes/*
+artifacts/cache/*
+!artifacts/models/.gitkeep
+!artifacts/indexes/.gitkeep
+!artifacts/cache/.gitkeep
+
+# Local reports and scratch files
+*.log
+scratch/
+
