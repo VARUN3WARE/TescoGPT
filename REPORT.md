@@ -48,7 +48,10 @@ handling decisions, twelve reason codes, and risk tags. One person labels
 all 200 cases. A different person independently labels a stratified 60-case
 overlap. Neither sees later Tesco responses, slice membership, challenge flags,
 model output, or the other person's labels. The repository will report raw
-agreement and Cohen's kappa before any adjudication.
+agreement and Cohen's kappa before any adjudication. The three scored
+categorical fields are then resolved in a separate adjudication artifact, and
+only the resulting 200-case final file is used for headline metrics. The two
+independent source rounds remain immutable.
 
 ## 3. System
 

@@ -83,10 +83,13 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
     annotation_manifest = json.loads(
         _resolve(root, config["annotation_manifest"]).read_text(encoding="utf-8")
     )
+    round_one_path = _resolve(
+        root, config.get("round_one_annotation_file", config["gold_file"])
+    )
     _hash_check(
         checks,
         name="round one annotations",
-        path=_resolve(root, config["gold_file"]),
+        path=round_one_path,
         expected=annotation_manifest.get("round_one_sha256"),
     )
     _hash_check(
@@ -95,6 +98,14 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
         path=_resolve(root, config["second_annotation_file"]),
         expected=annotation_manifest.get("round_two_sha256"),
     )
+    gold_path = _resolve(root, config["gold_file"])
+    if gold_path != round_one_path:
+        _hash_check(
+            checks,
+            name="final adjudicated annotations",
+            path=gold_path,
+            expected=annotation_manifest.get("final_sha256"),
+        )
 
     registry_hash = _sha256(registry_path)
     for prediction_value in config["prediction_files"]:
@@ -258,8 +269,11 @@ def reproduce_project(
         raise ValueError("Unsupported experiment configuration schema")
     integrity_checks = verify_artifact_integrity(config, root)
 
-    round_one = _resolve(root, config["gold_file"])
+    round_one = _resolve(
+        root, config.get("round_one_annotation_file", config["gold_file"])
+    )
     round_two = _resolve(root, config["second_annotation_file"])
+    gold = _resolve(root, config["gold_file"])
     round_one_progress = validate_annotations(round_one)
     round_two_progress = validate_annotations(round_two)
     prediction_paths = [_resolve(root, value) for value in config["prediction_files"]]
@@ -302,15 +316,20 @@ def reproduce_project(
     annotation_manifest = json.loads(
         _resolve(root, config["annotation_manifest"]).read_text(encoding="utf-8")
     )
-    if not str(annotation_manifest.get("label_status", "")).startswith("HUMAN_LABELED"):
-        raise ValueError("Completed labels must be frozen with labels-freeze first")
+    if annotation_manifest.get("label_status") != "HUMAN_LABELED_ADJUDICATED":
+        raise ValueError(
+            "Completed independent labels must be frozen and adjudicated before scoring"
+        )
+    if gold == round_one:
+        raise ValueError("gold_file must point to the distinct adjudicated final file")
+    validate_annotations(gold, require_complete=True, require_blind=True)
     agreement = annotation_agreement(
         round_one,
         round_two,
         _resolve(root, config["annotation_agreement_output"]),
     )
     metrics = evaluate_predictions(
-        round_one,
+        gold,
         _resolve(root, config["registry_file"]),
         prediction_paths,
         _resolve(root, config["metrics_output"]),
@@ -386,7 +405,7 @@ def reproduce_project(
         frozen_retrieval_review = _resolve(root, config["retrieval_review_file"])
         frozen_retrieval_key = _resolve(root, config["retrieval_review_key"])
     failure_report = build_failure_evidence(
-        round_one,
+        gold,
         _resolve(root, config["registry_file"]),
         prediction_paths,
         _resolve(root, config["failure_events_output"]),

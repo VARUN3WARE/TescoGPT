@@ -192,7 +192,31 @@ Risk tags describe the example; they do not mechanically determine the route.
 7. Use `annotation_notes` for uncertainty; do not silently guess.
 
 Annotators work independently. Round-two labels must not be copied from round one.
-Disagreements are preserved before adjudication and reported with Cohen's kappa.
+Disagreements are preserved and reported with Cohen's kappa before adjudication.
+
+## Adjudication procedure
+
+After both independent rounds are complete, freeze their hashes and compute
+agreement before resolving anything. `adjudication-init` creates a separate
+60-row overlap file. Agreements are prefilled; disagreements have blank
+`final_*` cells. An adjudicator rereads the message and context, selects the
+final label for every disputed categorical field, records `adjudicator_id`, and
+briefly explains difficult choices in `adjudication_notes`.
+
+Only the three scored categorical fields are adjudicated: `intent_label`,
+`handling_label`, and `reason_code`. Secondary intent, risk tags, reply
+requirements, and free-text notes remain the primary annotator's judgments and
+are not included in inter-annotator-agreement claims. `adjudication-finalize`
+merges resolved overlap labels into a distinct 200-row
+`final_annotations.csv`; neither independent round is modified.
+
+```bash
+python -m tescogpt labels-freeze
+python -m tescogpt annotation-agreement
+python -m tescogpt adjudication-init
+python -m tescogpt adjudication-check --require-complete
+python -m tescogpt adjudication-finalize
+```
 
 ## Common mistakes
 

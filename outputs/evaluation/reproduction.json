@@ -30,8 +30,8 @@
       "passed": true
     },
     {
-      "actual_sha256": "6f3015d5322384374597805a1ee8ed2c8f59c34f9b9d94b3f497e9bb47c46711",
-      "expected_sha256": "6f3015d5322384374597805a1ee8ed2c8f59c34f9b9d94b3f497e9bb47c46711",
+      "actual_sha256": "70ae00c1437ea9311fe486fbfb74654bb448fe03c82379ee7b94835b454334f1",
+      "expected_sha256": "70ae00c1437ea9311fe486fbfb74654bb448fe03c82379ee7b94835b454334f1",
       "file": "ANNOTATION_GUIDE.md",
       "name": "annotation codebook",
       "passed": true

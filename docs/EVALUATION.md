@@ -1,8 +1,10 @@
 # Evaluation protocol
 
 Metric code and definitions are frozen before the golden labels are available.
-The evaluator refuses incomplete annotation files and requires prediction IDs to
-match the 200 gold IDs exactly.
+The evaluator refuses incomplete or unadjudicated annotation files and requires
+prediction IDs to match the 200 gold IDs exactly. Headline metrics use the
+distinct `final_annotations.csv`; agreement always uses the untouched first and
+second annotation rounds.
 
 ## Intent
 
@@ -70,7 +72,7 @@ After human labels are complete:
 
 ```bash
 python -m tescogpt evaluate \
-  --gold data/golden/round1_annotations.csv \
+  --gold data/golden/final_annotations.csv \
   --registry data/golden/golden_candidates.csv \
   --predictions outputs/predictions/trivial.csv \
                 outputs/predictions/simple.csv \

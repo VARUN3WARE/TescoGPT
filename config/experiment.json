@@ -2,6 +2,7 @@
   "experiment_schema_version": 1,
   "status": "AWAITING_HUMAN_LABELS",
   "gold_file": "data/golden/round1_annotations.csv",
+  "round_one_annotation_file": "data/golden/round1_annotations.csv",
   "second_annotation_file": "data/golden/round2_annotations.csv",
   "annotation_manifest": "data/golden/annotation_rounds.manifest.json",
   "registry_file": "data/golden/golden_candidates.csv",

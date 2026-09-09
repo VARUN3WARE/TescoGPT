@@ -9,6 +9,11 @@ from pathlib import Path
 
 from tescogpt.data.audit import audit_conversations
 from tescogpt.data.threads import extract_brand_conversations
+from tescogpt.evaluation.adjudication import (
+    finalize_adjudication,
+    initialize_adjudication,
+    validate_adjudication,
+)
 from tescogpt.evaluation.agreement import annotation_agreement
 from tescogpt.evaluation.failure_analysis import build_failure_evidence
 from tescogpt.evaluation.judge import judge_human_agreement, judge_review_sheet
@@ -187,6 +192,66 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     labels_freeze.add_argument(
         "--codebook", type=Path, default=Path("docs/ANNOTATION_GUIDE.md")
+    )
+
+    adjudication_init = subparsers.add_parser(
+        "adjudication-init",
+        help="Create a blind adjudication sheet for independent label disagreements.",
+    )
+    adjudication_init.add_argument(
+        "--round-one", type=Path, default=Path("data/golden/round1_annotations.csv")
+    )
+    adjudication_init.add_argument(
+        "--round-two", type=Path, default=Path("data/golden/round2_annotations.csv")
+    )
+    adjudication_init.add_argument(
+        "--round-manifest",
+        type=Path,
+        default=Path("data/golden/annotation_rounds.manifest.json"),
+    )
+    adjudication_init.add_argument(
+        "--output", type=Path, default=Path("data/golden/adjudication.csv")
+    )
+    adjudication_init.add_argument(
+        "--manifest",
+        type=Path,
+        default=Path("data/golden/adjudication.manifest.json"),
+    )
+
+    adjudication_check = subparsers.add_parser(
+        "adjudication-check",
+        help="Validate adjudicated overlap labels and show resolution progress.",
+    )
+    adjudication_check.add_argument(
+        "--input", type=Path, default=Path("data/golden/adjudication.csv")
+    )
+    adjudication_check.add_argument("--require-complete", action="store_true")
+
+    adjudication_finalize = subparsers.add_parser(
+        "adjudication-finalize",
+        help="Freeze adjudication and create the distinct final 200-case gold file.",
+    )
+    adjudication_finalize.add_argument(
+        "--round-one", type=Path, default=Path("data/golden/round1_annotations.csv")
+    )
+    adjudication_finalize.add_argument(
+        "--round-two", type=Path, default=Path("data/golden/round2_annotations.csv")
+    )
+    adjudication_finalize.add_argument(
+        "--round-manifest",
+        type=Path,
+        default=Path("data/golden/annotation_rounds.manifest.json"),
+    )
+    adjudication_finalize.add_argument(
+        "--adjudication", type=Path, default=Path("data/golden/adjudication.csv")
+    )
+    adjudication_finalize.add_argument(
+        "--adjudication-manifest",
+        type=Path,
+        default=Path("data/golden/adjudication.manifest.json"),
+    )
+    adjudication_finalize.add_argument(
+        "--output", type=Path, default=Path("data/golden/final_annotations.csv")
     )
 
     predict = subparsers.add_parser(
@@ -535,6 +600,37 @@ def main(argv: Sequence[str] | None = None) -> None:
             round_two_path=args.round_two,
             manifest_path=args.manifest,
             codebook_path=args.codebook,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "adjudication-init":
+        manifest = initialize_adjudication(
+            round_one_path=args.round_one,
+            round_two_path=args.round_two,
+            round_manifest_path=args.round_manifest,
+            output_path=args.output,
+            manifest_path=args.manifest,
+        )
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return
+
+    if args.command == "adjudication-check":
+        progress = validate_adjudication(
+            args.input,
+            require_complete=args.require_complete,
+        )
+        print(json.dumps(progress, indent=2, sort_keys=True))
+        return
+
+    if args.command == "adjudication-finalize":
+        manifest = finalize_adjudication(
+            round_one_path=args.round_one,
+            round_two_path=args.round_two,
+            round_manifest_path=args.round_manifest,
+            adjudication_path=args.adjudication,
+            adjudication_manifest_path=args.adjudication_manifest,
+            final_output_path=args.output,
         )
         print(json.dumps(manifest, indent=2, sort_keys=True))
         return

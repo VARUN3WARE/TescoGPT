@@ -102,7 +102,7 @@ judge agreement is inadequate.
 ```bash
 python -m tescogpt annotation-agreement
 python -m tescogpt reply-review-init \
-  --gold data/golden/round1_annotations.csv \
+  --gold data/golden/final_annotations.csv \
   --predictions outputs/predictions/trivial.csv \
                 outputs/predictions/simple.csv \
                 outputs/predictions/main_openai.csv \

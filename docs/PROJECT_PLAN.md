@@ -43,7 +43,8 @@ recorded before any judge output exists.
 - Golden set has 150–250 genuinely human-reviewed examples.
 - No golden conversation or target case is available to training or retrieval.
 - Thresholds are selected on development data, never on the final golden labels.
-- At least 50 examples have independent second-human labels.
+- At least 50 examples have independent second-human labels, and categorical
+  disagreements are adjudicated before headline scoring.
 - Every reported aggregate is reproducible from committed per-example outputs.
 - Routing reports both unsafe automation and needless escalation.
 - Reply evaluation contains deterministic safety checks and human ratings.

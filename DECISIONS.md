@@ -43,4 +43,5 @@ after the results are known.
     intent and escalation labels. Slice metadata is rejoined only for analysis.
 15. **Double-label 60 stratified cases before adjudication.** This exceeds the
     minimum 50 while keeping independent review feasible; raw disagreement will
-    be reported rather than erased by consensus labels alone.
+    be reported rather than erased by consensus labels alone. Resolved labels
+    enter a distinct final file so neither source round is rewritten.

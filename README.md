@@ -85,7 +85,8 @@ are defined in the [annotation guide](docs/ANNOTATION_GUIDE.md). The sampling
 manifest records input hashes, timestamps, seeds, split sizes, and candidate
 hashes in [data/golden](data/golden). `golden_candidates.csv` is a sampling
 registry, while `round1_annotations.csv` and `round2_annotations.csv` are the
-blinded files given to annotators.
+blinded files given to annotators. Headline scoring will use the distinct
+`final_annotations.csv` produced after disagreement adjudication.
 
 Planned primary measures:
 
@@ -184,7 +185,21 @@ labels. After labelling, save only the `Annotations` sheet as CSV UTF-8 over the
 corresponding file in `data/golden`, then run `labels-check --require-complete`.
 Once both files pass, run `python -m tescogpt labels-freeze` to verify that no
 message or context changed, enforce distinct annotator IDs, and update the
-human-label hashes.
+human-label hashes. Then preserve the independent-agreement measurement and
+resolve only categorical disagreements:
+
+```bash
+python -m tescogpt annotation-agreement
+python -m tescogpt adjudication-init
+# A human completes the blank final_* cells and adjudicator_id values.
+python -m tescogpt adjudication-check --require-complete
+python -m tescogpt adjudication-finalize
+```
+
+`adjudication-finalize` creates `data/golden/final_annotations.csv`; it never
+overwrites either independent round. Before the final experiment, set
+`gold_file` in `config/experiment.json` to that final file. The reproduction
+command refuses to score completed but unadjudicated labels.
 
 Historical replies are retrieved only from the training period and reranked by
 weak follow-up evidence plus static safety penalties. The full method, its

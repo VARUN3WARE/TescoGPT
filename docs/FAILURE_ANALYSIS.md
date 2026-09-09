@@ -53,7 +53,7 @@ test or mitigation.
 
 ```bash
 python -m tescogpt failure-analysis \
-  --gold data/golden/round1_annotations.csv \
+  --gold data/golden/final_annotations.csv \
   --registry data/golden/golden_candidates.csv \
   --predictions outputs/predictions/trivial.csv \
                 outputs/predictions/simple.csv \
