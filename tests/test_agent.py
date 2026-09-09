@@ -63,6 +63,18 @@ class UnsafeDrafter:
         )
 
 
+class LinkDrafter:
+    name = "link_test"
+
+    def draft(self, case: dict, precedents: list[Precedent]) -> DraftCandidate:
+        return DraftCandidate(
+            predicted_intent="feedback_praise_or_suggestion",
+            intent_confidence=0.99,
+            draft_reply="Thanks! See the latest details at https://example.com/help",
+            used_evidence_case_ids=("train-1",),
+        )
+
+
 def test_final_gate_replaces_unsafe_draft_and_escalates() -> None:
     result = EvidencePolicyAgent(_corpus(), UnsafeDrafter()).predict(
         {
@@ -74,7 +86,7 @@ def test_final_gate_replaces_unsafe_draft_and_escalates() -> None:
     )
 
     assert result.handling_decision == "ESCALATE"
-    assert result.decision_reason == "PERSONAL_DATA_OR_PRIVATE_CHANNEL"
+    assert result.decision_reason == "MONEY_OR_COMMITMENT"
     assert result.proposed_draft == (
         "DM your full name and address and I've credited your account."
     )
@@ -100,6 +112,24 @@ def test_template_agent_auto_handles_plain_feedback() -> None:
     assert result.evidence_case_ids == ("train-1",)
 
 
+def test_url_only_guardrail_produces_valid_escalation_and_replacement() -> None:
+    result = EvidencePolicyAgent(_corpus(), LinkDrafter()).predict(
+        {
+            "case_id": "test-1",
+            "conversation_id": "99",
+            "message": "Thanks to your kind cashier",
+            "prior_context": "",
+        }
+    )
+
+    assert result.handling_decision == "ESCALATE"
+    assert result.decision_reason == "CURRENT_POLICY_OR_LIVE_INFO"
+    assert result.automation_score == 0
+    assert result.draft_was_replaced
+    assert "https://" not in result.draft_reply
+    assert "draft_guardrail:external_or_legacy_url" in result.safety_flags
+
+
 def test_safety_risk_overrides_positive_wording() -> None:
     decision = decide_handling(
         intent="product_quality_or_safety",
@@ -111,6 +141,55 @@ def test_safety_risk_overrides_positive_wording() -> None:
 
     assert decision.handling_decision == "ESCALATE"
     assert decision.reason == "FOOD_SAFETY_OR_INJURY"
+    assert decision.automation_score == 0
+
+
+def test_frozen_reason_priority_survives_multiple_generated_hazards() -> None:
+    decision = decide_handling(
+        intent="product_quality_or_safety",
+        intent_confidence=0.99,
+        message="There was glass in this jar and it cut me",
+        prior_context="",
+        draft_reply=(
+            "DM your full name and address. We've refunded you; see "
+            "https://example.com/help"
+        ),
+    )
+
+    assert set(decision.reply_flags) >= {
+        "private_channel_request",
+        "personal_data_request",
+        "unsupported_backend_action",
+        "external_or_legacy_url",
+    }
+    assert decision.handling_decision == "ESCALATE"
+    assert decision.reason == "FOOD_SAFETY_OR_INJURY"
+
+
+@pytest.mark.parametrize(
+    ("draft_reply", "expected_reason"),
+    [
+        ("Please send your order number", "PERSONAL_DATA_OR_PRIVATE_CHANNEL"),
+        ("We've processed the refund", "MONEY_OR_COMMITMENT"),
+        ("See https://example.com/help", "CURRENT_POLICY_OR_LIVE_INFO"),
+        ("x" * 281, "HUMAN_JUDGMENT_REQUIRED"),
+    ],
+)
+def test_every_guardrail_family_maps_to_an_escalation_reason(
+    draft_reply: str,
+    expected_reason: str,
+) -> None:
+    decision = decide_handling(
+        intent="feedback_praise_or_suggestion",
+        intent_confidence=0.99,
+        message="Thanks Tesco",
+        prior_context="",
+        draft_reply=draft_reply,
+    )
+
+    assert decision.reply_flags
+    assert decision.handling_decision == "ESCALATE"
+    assert decision.reason == expected_reason
     assert decision.automation_score == 0
 
 

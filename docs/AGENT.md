@@ -65,6 +65,12 @@ in the prediction artifact. The artifact retains the original `proposed_draft`,
 the final public `draft_reply`, and `draft_was_replaced`, so a blocked generation
 is inspectable rather than hidden by the safe fallback.
 
+The router collects every applicable escalation reason and selects one using the
+same frozen priority order as the annotation guide. This keeps multi-risk cases
+comparable to human labels. Every known reply-warning family maps to an allowed
+escalation reason, an unknown future warning fails closed to human judgment, and
+any blocked generated reply receives an automation score of zero.
+
 `automation_score` is a ranking score, not a calibrated probability. Its policy
 thresholds are frozen engineering priors until development labels exist. They
 must not be tuned on the final golden set.
