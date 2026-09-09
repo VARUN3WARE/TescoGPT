@@ -36,6 +36,12 @@ request hash, cache-hit status, response ID, resolved response model, and token
 usage. Cache records with mismatched provenance or invalid result fields are
 rejected rather than silently reused.
 
+Generation-time validation is repeated during offline reproduction. Every CSV
+row is reconstructed as the shared `AgentOutput` contract, its case IDs must
+exactly cover the frozen registry, and its row count, filenames, system ID, and
+input/output hashes must match the manifest. A hash-consistent but incomplete or
+malformed prediction file therefore still fails the experiment preflight.
+
 The integration follows the official
 [Responses API reference](https://developers.openai.com/api/reference/cli/resources/responses/methods/create).
 No API-backed artifact is committed yet because this environment has no API key.

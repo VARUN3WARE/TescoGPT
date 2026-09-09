@@ -21,6 +21,7 @@ from tescogpt.evaluation.retrieval_review import (
     validate_retrieval_review,
 )
 from tescogpt.evaluation.safety import audit_prediction_safety
+from tescogpt.prediction import validate_prediction_artifact
 from tescogpt.retrieval.outcome import validate_retrieval_artifact
 
 
@@ -162,6 +163,11 @@ def verify_artifact_integrity(config: dict[str, Any], root: Path) -> list[dict[s
         )
         if manifest.get("input_sha256") != registry_hash:
             raise ValueError(f"Prediction input hash does not match registry: {prediction_path}")
+        validate_prediction_artifact(
+            registry_path,
+            prediction_path,
+            manifest_path,
+        )
         frame = pd.read_csv(prediction_path, dtype="string", keep_default_na=False)
         if set(frame["system_name"]) != {manifest.get("system")}:
             raise ValueError(f"Prediction system name differs from manifest: {prediction_path}")

@@ -138,10 +138,10 @@ def _prediction_rows(
                 "handling_decision": handling,
                 "decision_reason": reason,
                 "automation_score": score,
-                "evidence_case_ids": f"evidence-{index + 1}",
-                "evidence_quotes": "A synthetic historical precedent.",
-                "evidence_scores": "1.0",
-                "safety_flags": "",
+                "evidence_case_ids": json.dumps([f"evidence-{index + 1}"]),
+                "evidence_quotes": json.dumps(["A synthetic historical precedent."]),
+                "evidence_scores": json.dumps([1.0]),
+                "safety_flags": "[]",
             }
         )
     return rows
@@ -330,9 +330,13 @@ def test_final_reproduction_runs_every_evaluation_branch(tmp_path: Path) -> None
         _write_json(
             path.with_suffix(".csv.manifest.json"),
             {
+                "prediction_schema_version": 2,
                 "system": system,
+                "input_file": registry.name,
                 "input_sha256": _sha256(registry),
+                "prediction_file": path.name,
                 "prediction_sha256": _sha256(path),
+                "row_count": len(rows),
             },
         )
 

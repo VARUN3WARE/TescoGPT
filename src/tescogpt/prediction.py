@@ -11,6 +11,7 @@ import pandas as pd
 
 from tescogpt.agent.drafting import OpenAIDrafter, SafeTemplateDrafter
 from tescogpt.agent.main import EvidencePolicyAgent
+from tescogpt.agent.schema import PREDICTION_COLUMNS, AgentOutput
 from tescogpt.baselines import SimpleBaseline, TrivialBaseline
 
 
@@ -20,6 +21,96 @@ def _sha256(path: Path, block_size: int = 1024 * 1024) -> str:
         while block := file_handle.read(block_size):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _json_array(value: str, column: str) -> list[Any]:
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise ValueError(f"Prediction {column} must be a JSON array") from error
+    if not isinstance(parsed, list):
+        raise ValueError(f"Prediction {column} must be a JSON array")
+    return parsed
+
+
+def validate_prediction_artifact(
+    input_path: str | Path,
+    prediction_path: str | Path,
+    manifest_path: str | Path,
+) -> dict[str, Any]:
+    """Validate frozen prediction coverage, row schema, and manifest provenance."""
+    source = Path(input_path)
+    destination = Path(prediction_path)
+    manifest_file = Path(manifest_path)
+    cases = pd.read_csv(source, dtype="string", keep_default_na=False)
+    predictions = pd.read_csv(destination, dtype="string", keep_default_na=False)
+    manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
+
+    if "case_id" not in cases.columns:
+        raise ValueError("Prediction input is missing case_id")
+    if cases["case_id"].duplicated().any():
+        raise ValueError("Prediction input contains duplicate case IDs")
+    missing = sorted(set(PREDICTION_COLUMNS) - set(predictions.columns))
+    if missing:
+        raise ValueError("Prediction artifact is missing columns: " + ", ".join(missing))
+    if predictions["case_id"].duplicated().any():
+        raise ValueError("Prediction artifact contains duplicate case IDs")
+    if set(predictions["case_id"]) != set(cases["case_id"]):
+        raise ValueError("Prediction case IDs do not exactly match the frozen input")
+
+    for row in predictions.to_dict(orient="records"):
+        replaced_text = str(row["draft_was_replaced"]).strip().lower()
+        if replaced_text not in {"true", "false"}:
+            raise ValueError("Prediction draft_was_replaced must be true or false")
+        evidence_ids = _json_array(str(row["evidence_case_ids"]), "evidence_case_ids")
+        evidence_quotes = _json_array(str(row["evidence_quotes"]), "evidence_quotes")
+        evidence_scores = _json_array(str(row["evidence_scores"]), "evidence_scores")
+        safety_flags = _json_array(str(row["safety_flags"]), "safety_flags")
+        if not all(isinstance(item, str) for item in evidence_ids):
+            raise ValueError("Prediction evidence_case_ids must contain strings")
+        if not all(isinstance(item, str) for item in evidence_quotes):
+            raise ValueError("Prediction evidence_quotes must contain strings")
+        if not all(isinstance(item, int | float) for item in evidence_scores):
+            raise ValueError("Prediction evidence_scores must contain numbers")
+        if not all(isinstance(item, str) for item in safety_flags):
+            raise ValueError("Prediction safety_flags must contain strings")
+        AgentOutput(
+            case_id=str(row["case_id"]),
+            system_name=str(row["system_name"]),
+            predicted_intent=str(row["predicted_intent"]),
+            intent_confidence=float(row["intent_confidence"]),
+            proposed_draft=str(row["proposed_draft"]),
+            draft_reply=str(row["draft_reply"]),
+            draft_was_replaced=replaced_text == "true",
+            handling_decision=str(row["handling_decision"]),
+            decision_reason=str(row["decision_reason"]),
+            automation_score=float(row["automation_score"]),
+            evidence_case_ids=tuple(evidence_ids),
+            evidence_quotes=tuple(evidence_quotes),
+            evidence_scores=tuple(float(score) for score in evidence_scores),
+            safety_flags=tuple(safety_flags),
+        )
+
+    systems = sorted(set(predictions["system_name"]))
+    if len(systems) != 1:
+        raise ValueError("Prediction artifact must contain exactly one system")
+    expected_manifest = {
+        "prediction_schema_version": 2,
+        "system": systems[0],
+        "input_file": source.name,
+        "input_sha256": _sha256(source),
+        "prediction_file": destination.name,
+        "prediction_sha256": _sha256(destination),
+        "row_count": len(predictions),
+    }
+    for field, expected in expected_manifest.items():
+        if manifest.get(field) != expected:
+            raise ValueError(f"Prediction manifest {field} does not match the artifact")
+    return {
+        "system": systems[0],
+        "row_count": len(predictions),
+        "input_case_count": len(cases),
+    }
 
 
 def run_predictions(
@@ -107,4 +198,5 @@ def run_predictions(
         encoding="utf-8",
         newline="\n",
     )
+    validate_prediction_artifact(source, destination, manifest_path)
     return manifest

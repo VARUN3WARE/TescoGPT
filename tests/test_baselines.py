@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from tescogpt.agent.intent import classify_intent
 from tescogpt.agent.schema import AgentOutput
 from tescogpt.baselines.simple import SimpleBaseline
 from tescogpt.baselines.trivial import TrivialBaseline
-from tescogpt.prediction import run_predictions
+from tescogpt.prediction import run_predictions, validate_prediction_artifact
 from tescogpt.retrieval.bm25 import BM25Index
 
 
@@ -134,3 +135,32 @@ def test_prediction_runner_refuses_unpartitioned_retrieval_corpus(
             tmp_path / "predictions.csv",
             corpus_path,
         )
+
+
+def test_validator_rejects_hash_consistent_missing_prediction(tmp_path: Path) -> None:
+    cases = pd.DataFrame(
+        [
+            {
+                "case_id": case_id,
+                "conversation_id": f"conversation-{case_id}",
+                "message": "Thanks Tesco",
+                "prior_context": "",
+            }
+            for case_id in ("case-1", "case-2")
+        ]
+    )
+    input_path = tmp_path / "cases.csv"
+    output_path = tmp_path / "predictions.csv"
+    manifest_path = output_path.with_suffix(".csv.manifest.json")
+    cases.to_csv(input_path, index=False)
+    run_predictions("trivial", input_path, output_path)
+
+    predictions = pd.read_csv(output_path).iloc[:1]
+    predictions.to_csv(output_path, index=False)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["prediction_sha256"] = hashlib.sha256(output_path.read_bytes()).hexdigest()
+    manifest["row_count"] = 1
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="case IDs do not exactly match"):
+        validate_prediction_artifact(input_path, output_path, manifest_path)
